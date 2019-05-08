@@ -34,6 +34,12 @@ func SetKeyExpire(key string, seconds int) error {
 	return err
 }
 
+// del key
+func DelKey(key string) error {
+	_, err := Redis.Do("DEL", key)
+	return err
+}
+
 // set key-value for string
 func SetKey(key string, value string) error {
 	_, err := Redis.Do("SET", key, value)

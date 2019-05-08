@@ -6,11 +6,13 @@ import (
 )
 
 const (
-	Code = 100000
+	TokenInvalid  = 100000
+	TokenNotFound = 200000
 )
 
 var err = []string{
-	Code: "错误说明",
+	TokenInvalid:  "Token失效",
+	TokenNotFound: "无权限访问",
 }
 
 type WebError map[string]interface{}
