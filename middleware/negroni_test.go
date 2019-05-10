@@ -14,7 +14,7 @@ import (
 
 const (
 	RedisTokenPrefix = "token_"
-	SecurityKey      = "Mdaf43#$%+*/=07RbGc7xkh3frwdIUYknskIHNnJc6_0K240654CCNMmDzxJwVzlPtmcaeadinotii28jWPE"
+	SecurityKey      = "Mdaf43#$%+=07RbGc7xkh3frwdIUYknskIHNnJc6_0K240654CCNMm"
 )
 
 var jwtConfig = auth.JWTConfig{
@@ -56,6 +56,7 @@ func Test(t *testing.T) {
 			"tiken": token,
 		})
 	})
+
 	router.GET("/test", func(c *gin.Context) {
 		userID, err := auth.GetUser(c.Request)
 		if err != nil {

@@ -17,25 +17,29 @@ func (load TokenPayload) GenRedisKey(prefix string) string {
 
 func GetUser(r *http.Request) (userId int, err error) {
 	value := r.Context().Value("userId")
-	if value != nil {
-		f, ok := value.(float64)
-		if ok {
-			userId = int(f)
-		} else {
-			userId = value.(int)
-		}
-		return userId, nil
-	} else {
-		return userId, errors.New("userId has no value in http request context")
+	userId, err = strconv.Atoi(fmt.Sprintf(`%v`, value))
+	if err != nil {
+		return -1, errors.New("userId has no value in http request context")
 	}
+	return userId, nil
 }
 
-func GenToken(secretKey string, duration time.Duration, load *TokenPayload) (string, error) {
+// func GetUser(r *http.Request) (userId int, err error) {
+// token, _ := jwt.ParseWithClaims(tokenString, &infor{}, func(token *jwt.Token) (interface{}, error) {
+// 	return []byte(securityKey), nil
+// })
+// if claims, ok := token.Claims.(*infor); ok && token.Valid {
+// 	return &claims.Infor, nil
+// }
+// return nil, errors.New("token is error")
+// }
+
+func GenToken(sign string, duration time.Duration, load *TokenPayload) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(map[string]interface{}{
 		"iat":  time.Now().Unix(),
 		"exp":  time.Now().Add(duration).Unix(),
 		"user": load,
-	})).SignedString([]byte(securityKey))
+	})).SignedString([]byte(sign))
 }
 
 func SetToken(conn redis.Conn, redisKey string, value string) error {

@@ -73,7 +73,7 @@ func JWT(jwtcfg JWTConfig) func(w http.ResponseWriter, r *http.Request, next htt
 			next(w, r)
 			return
 		}
-		log.Debug("Authorization:", r.Header["Authorization"])
+		// log.Debug("Authorization:", r.Header["Authorization"])
 		token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor,
 			func(token *jwt.Token) (interface{}, error) {
 				return []byte(jwtcfg.SecretKey), nil
