@@ -21,9 +21,9 @@ type TokenPayload struct {
 
 // jwt config
 type JWTConfig struct {
-	InterceptConfig                                                  // 过滤规则
-	SecretKey         string                                         // 密钥
-	CheckTokenPayload func(token string, payload *TokenPayload) bool // 验证Token
+	InterceptConfig                                               // 过滤规则
+	SecretKey         string                                      // 密钥
+	CheckTokenPayload func(token string, load *TokenPayload) bool // 验证Token
 }
 
 type InterceptConfig interface {
@@ -82,12 +82,11 @@ func JWT(jwtcfg JWTConfig) func(w http.ResponseWriter, r *http.Request, next htt
 			claims := token.Claims.(jwt.MapClaims)
 			var user = claims["user"]
 			if user != nil {
-				var upmap = user.(map[string]interface{})
-				var payload = new(TokenPayload)
-				bytes, _ := json.Marshal(upmap)
-				json.Unmarshal(bytes, payload)
+				var load = new(TokenPayload)
+				bytes, _ := json.Marshal(user)
+				json.Unmarshal(bytes, load)
 				if jwtcfg.CheckTokenPayload != nil {
-					if !jwtcfg.CheckTokenPayload(token.Raw, payload) {
+					if !jwtcfg.CheckTokenPayload(token.Raw, load) {
 						log.Warn("token logout")
 						w.WriteHeader(http.StatusUnauthorized)
 						result := map[string]interface{}{
@@ -101,8 +100,8 @@ func JWT(jwtcfg JWTConfig) func(w http.ResponseWriter, r *http.Request, next htt
 					}
 				}
 				ctx := r.Context()
-				ctx = context.WithValue(ctx, "userId", payload.UserId)
-				ctx = context.WithValue(ctx, "user", *payload)
+				ctx = context.WithValue(ctx, "userId", load.UserId)
+				ctx = context.WithValue(ctx, "user", *load)
 				request := r.WithContext(ctx)
 				next(w, request)
 				return

@@ -9,7 +9,6 @@ import (
 	"github.com/urfave/negroni"
 
 	"github.com/CharlesBases/common/auth"
-	"github.com/CharlesBases/common/db"
 	"github.com/CharlesBases/common/log"
 )
 
@@ -24,13 +23,14 @@ var jwtConfig = auth.JWTConfig{
 			"/token",
 		}},
 	SecretKey: SecurityKey,
-	CheckTokenPayload: func(token string, payload *auth.TokenPayload) bool {
-		redisKey := payload.GenRedisKey(RedisTokenPrefix)
-		tokenStr, err := auth.GetToken(db.InitRedis("127.0.0.1:4399"), redisKey)
-		if err != nil {
-			log.Warn(err)
-		}
-		return token == tokenStr
+	CheckTokenPayload: func(token string, load *auth.TokenPayload) bool {
+		// redisKey := load.GenRedisKey(RedisTokenPrefix)
+		// tokenStr, err := auth.GetToken(db.InitRedis("192.168.1.88:4399"), redisKey)
+		// if err != nil {
+		// 	log.Warn(err)
+		// }
+		// return token == tokenStr
+		return true
 	},
 }
 
@@ -57,9 +57,17 @@ func Test(t *testing.T) {
 		})
 	})
 	router.GET("/test", func(c *gin.Context) {
+		userID, err := auth.GetUser(c.Request)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"code": 500,
+				"msg":  err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
-			"code": 500,
-			"msg":  "hahaha",
+			"code": 0,
+			"msg":  userID,
 		})
 	})
 

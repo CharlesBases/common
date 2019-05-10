@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-
 	"github.com/gomodule/redigo/redis"
 )
 
-func (payload TokenPayload) GenRedisKey(prefix string) string {
-	return fmt.Sprintf("%s%s_%d", prefix, strconv.Itoa(payload.UserId), payload.Timestamp)
+func (load TokenPayload) GenRedisKey(prefix string) string {
+	return fmt.Sprintf("%s%s_%d", prefix, strconv.Itoa(load.UserId), load.Timestamp)
 }
 
 func GetUser(r *http.Request) (userId int, err error) {
@@ -31,21 +30,19 @@ func GetUser(r *http.Request) (userId int, err error) {
 	}
 }
 
-func GenToken(secretKey string, duration time.Duration, payload *TokenPayload) (tokenStr string, err error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := make(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(duration).Unix()
-	claims["iat"] = time.Now().Unix()
-	claims["user"] = map[string]interface{}{"user_id": payload.UserId, "timestamp": payload.Timestamp}
-	token.Claims = claims
-	return token.SignedString([]byte(secretKey))
+func GenToken(secretKey string, duration time.Duration, load *TokenPayload) (string, error) {
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(map[string]interface{}{
+		"iat":  time.Now().Unix(),
+		"exp":  time.Now().Add(duration).Unix(),
+		"user": load,
+	})).SignedString([]byte(securityKey))
+}
+
+func SetToken(conn redis.Conn, redisKey string, value string) error {
+	_, err := conn.Do("SET", redisKey, value)
+	return err
 }
 
 func GetToken(conn redis.Conn, redisKey string) (tokenStr string, err error) {
 	return redis.String(conn.Do("GET", redisKey))
-}
-
-func memoryToken(conn redis.Conn, redisKey string, value string) error {
-	_, err := conn.Do("SET", redisKey, value)
-	return err
 }
