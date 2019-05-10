@@ -10,7 +10,9 @@ import (
 )
 
 var (
-	DB           *gorm.DB
+	DB *gorm.DB
+
+	debug        = false
 	maxIdleConns = 2000
 	maxOpenConns = 1000
 )
@@ -41,6 +43,7 @@ func openMySql(database string) {
 	db.DB().SetMaxIdleConns(maxIdleConns)
 	db.DB().SetMaxOpenConns(maxOpenConns)
 
+	db.LogMode(debug)
 	db.SetLogger(new(Logger))
 	db.SingularTable(true)
 	db.BlockGlobalUpdate(true)
