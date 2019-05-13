@@ -14,10 +14,17 @@ import (
 	"github.com/CharlesBases/common/log"
 )
 
+var (
+	tokenError = map[string]interface{}{
+		"code": 999,
+		"flag": false,
+		"msg":  "token is not valid",
+	}
+)
+
 type User struct {
 	UserId    int   `json:"userId"`
 	Timestamp int64 `json:"timestamp"`
-	// jwt.StandardClaims
 }
 
 type jwtClaims struct {
@@ -27,9 +34,9 @@ type jwtClaims struct {
 
 // jwt config
 type JWTConfig struct {
-	InterceptConfig                                       // 过滤规则
-	SecretKey         string                              // 密钥
-	CheckTokenPayload func(token string, user *User) bool // 验证Token
+	InterceptConfig                                     // 过滤规则
+	SecretKey       string                              // 密钥
+	VerifyToken     func(token string, user *User) bool // 验证Token
 }
 
 type InterceptConfig interface {
@@ -84,47 +91,31 @@ func JWT(jwtcfg JWTConfig) func(w http.ResponseWriter, r *http.Request, next htt
 			func(token *jwt.Token) (interface{}, error) {
 				return []byte(jwtcfg.SecretKey), nil
 			})
-		if err == nil && token.Valid {
-			claims := token.Claims.(jwt.MapClaims)
-			var user = claims["user"]
-			if user != nil {
-				var user = new(User)
-				bytes, _ := json.Marshal(user)
+		if err == nil {
+			if token.Valid {
+				user := new(User)
+				bytes, _ := json.Marshal(token.Claims.(jwt.MapClaims)["user"])
 				json.Unmarshal(bytes, user)
-				if jwtcfg.CheckTokenPayload != nil {
-					if !jwtcfg.CheckTokenPayload(token.Raw, user) {
+				if jwtcfg.VerifyToken != nil {
+					if !jwtcfg.VerifyToken(token.Raw, user) {
 						log.Warn("token logout")
 						w.WriteHeader(http.StatusUnauthorized)
-						result := map[string]interface{}{
-							"code": 999,
-							"flag": false,
-							"msg":  "Token无效",
-						}
-						b, _ := json.Marshal(result)
+						b, _ := json.Marshal(tokenError)
 						w.Write(b)
 						return
 					}
 				}
-				ctx := r.Context()
-				ctx = context.WithValue(ctx, "userId", user.UserId)
+				ctx := context.WithValue(r.Context(), "userId", user.UserId)
 				request := r.WithContext(ctx)
 				next(w, request)
 				return
+			} else {
+				log.Warn(r.RequestURI, " - token is not valid")
 			}
 		}
-		switch err.(type) {
-		case *jwt.ValidationError:
-			log.Warn(r.RequestURI, " token.Valid: ", err)
-		default:
-			log.Error(r.RequestURI, " token.Valid: ", err)
-		}
+		log.Error(r.RequestURI, " - unauthorized access to this resource:  ", err.Error())
 		w.WriteHeader(http.StatusUnauthorized)
-		result := map[string]interface{}{
-			"code": 999,
-			"flag": false,
-			"msg":  "Token无效",
-		}
-		b, _ := json.Marshal(result)
+		b, _ := json.Marshal(&tokenError)
 		w.Write(b)
 	}
 	return InterceptHandlerFunc(jwtcfg, h)
@@ -196,7 +187,7 @@ func InterceptHandlerFunc(cfg InterceptConfig, h negroni.HandlerFunc) negroni.Ha
 		if pass {
 			h(rw, r, next)
 		} else {
-			log.Debug("不拦截：", requestURI)
+			log.Warn("don't interception: ", requestURI)
 			next(rw, r)
 		}
 	}

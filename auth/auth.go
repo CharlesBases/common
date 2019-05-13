@@ -20,22 +20,26 @@ func GetUser(r *http.Request) (userId int, err error) {
 	return userId, nil
 }
 
-func GenToken(SecretKey string, duration time.Duration, load *User) (string, error) {
+func GenToken(SecretKey string, duration time.Duration, user *User) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(map[string]interface{}{
 		"iat":  time.Now().Unix(),
 		"exp":  time.Now().Add(duration).Unix(),
-		"user": load,
+		"user": user,
 	})).SignedString([]byte(SecretKey))
 }
 
 func ParToken(SecretKey string, tokenString string) (*User, error) {
-	token, _ := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(SecretKey), nil
 	})
-	if claims, ok := token.Claims.(*jwtClaims); ok && token.Valid {
-		return &claims.User, nil
+	if err == nil {
+		if token.Valid {
+			return &token.Claims.(*jwtClaims).User, nil
+		} else {
+			return nil, errors.New("token is not valid")
+		}
 	}
-	return nil, errors.New("token is error")
+	return nil, errors.New("unauthorized access to this resource")
 }
 
 func (user *User) GenRedisKey(prefix string) string {
