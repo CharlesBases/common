@@ -14,16 +14,22 @@ import (
 	"github.com/CharlesBases/common/log"
 )
 
-type TokenPayload struct {
+type User struct {
 	UserId    int   `json:"userId"`
 	Timestamp int64 `json:"timestamp"`
+	// jwt.StandardClaims
+}
+
+type jwtClaims struct {
+	User User
+	jwt.StandardClaims
 }
 
 // jwt config
 type JWTConfig struct {
-	InterceptConfig                                               // 过滤规则
-	SecretKey         string                                      // 密钥
-	CheckTokenPayload func(token string, load *TokenPayload) bool // 验证Token
+	InterceptConfig                                       // 过滤规则
+	SecretKey         string                              // 密钥
+	CheckTokenPayload func(token string, user *User) bool // 验证Token
 }
 
 type InterceptConfig interface {
@@ -82,11 +88,11 @@ func JWT(jwtcfg JWTConfig) func(w http.ResponseWriter, r *http.Request, next htt
 			claims := token.Claims.(jwt.MapClaims)
 			var user = claims["user"]
 			if user != nil {
-				var load = new(TokenPayload)
+				var user = new(User)
 				bytes, _ := json.Marshal(user)
-				json.Unmarshal(bytes, load)
+				json.Unmarshal(bytes, user)
 				if jwtcfg.CheckTokenPayload != nil {
-					if !jwtcfg.CheckTokenPayload(token.Raw, load) {
+					if !jwtcfg.CheckTokenPayload(token.Raw, user) {
 						log.Warn("token logout")
 						w.WriteHeader(http.StatusUnauthorized)
 						result := map[string]interface{}{
@@ -100,8 +106,7 @@ func JWT(jwtcfg JWTConfig) func(w http.ResponseWriter, r *http.Request, next htt
 					}
 				}
 				ctx := r.Context()
-				ctx = context.WithValue(ctx, "userId", load.UserId)
-				ctx = context.WithValue(ctx, "user", *load)
+				ctx = context.WithValue(ctx, "userId", user.UserId)
 				request := r.WithContext(ctx)
 				next(w, request)
 				return

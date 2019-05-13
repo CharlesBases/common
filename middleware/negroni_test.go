@@ -14,7 +14,7 @@ import (
 
 const (
 	RedisTokenPrefix = "token_"
-	SecurityKey      = "Mdaf43#$%+=07RbGc7xkh3frwdIUYknskIHNnJc6_0K240654CCNMm"
+	SecretKey        = "Mdaf43#$%+=07RbGc7xkh3frwdIUYknskIHNnJc6_0K240654CCNMm"
 )
 
 var jwtConfig = auth.JWTConfig{
@@ -22,16 +22,15 @@ var jwtConfig = auth.JWTConfig{
 		Exclude: []string{
 			"/token",
 		}},
-	SecretKey: SecurityKey,
-	CheckTokenPayload: func(token string, load *auth.TokenPayload) bool {
-		// redisKey := load.GenRedisKey(RedisTokenPrefix)
-		// tokenStr, err := auth.GetToken(db.InitRedis("192.168.1.88:4399"), redisKey)
-		// if err != nil {
-		// 	log.Warn(err)
-		// }
-		// return token == tokenStr
-		return true
-	},
+	SecretKey: SecretKey,
+	// CheckTokenPayload: func(token string, user *auth.User) bool {
+	// 	redisKey := user.GenRedisKey(RedisTokenPrefix)
+	// 	tokenStr, err := auth.GetToken(db.InitRedis("192.168.1.88:4399"), redisKey)
+	// 	if err != nil {
+	// 		log.Warn(err)
+	// 	}
+	// 	return token == tokenStr
+	// },
 }
 
 func Test(t *testing.T) {
@@ -42,7 +41,7 @@ func Test(t *testing.T) {
 	router := gin.New()
 	// router
 	router.GET("/token", func(c *gin.Context) {
-		token, err := auth.GenToken(SecurityKey, time.Hour*4, &auth.TokenPayload{UserId: 1, Timestamp: time.Now().UnixNano()})
+		token, err := auth.GenToken(SecretKey, time.Hour*4, &auth.User{UserId: 1, Timestamp: time.Now().UnixNano()})
 		if err != nil {
 			log.Error(err)
 			c.JSON(http.StatusOK, gin.H{

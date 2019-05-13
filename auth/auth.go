@@ -11,10 +11,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-func (load TokenPayload) GenRedisKey(prefix string) string {
-	return fmt.Sprintf("%s%s_%d", prefix, strconv.Itoa(load.UserId), load.Timestamp)
-}
-
 func GetUser(r *http.Request) (userId int, err error) {
 	value := r.Context().Value("userId")
 	userId, err = strconv.Atoi(fmt.Sprintf(`%v`, value))
@@ -24,22 +20,26 @@ func GetUser(r *http.Request) (userId int, err error) {
 	return userId, nil
 }
 
-// func GetUser(r *http.Request) (userId int, err error) {
-// token, _ := jwt.ParseWithClaims(tokenString, &infor{}, func(token *jwt.Token) (interface{}, error) {
-// 	return []byte(securityKey), nil
-// })
-// if claims, ok := token.Claims.(*infor); ok && token.Valid {
-// 	return &claims.Infor, nil
-// }
-// return nil, errors.New("token is error")
-// }
-
-func GenToken(sign string, duration time.Duration, load *TokenPayload) (string, error) {
+func GenToken(SecretKey string, duration time.Duration, load *User) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(map[string]interface{}{
 		"iat":  time.Now().Unix(),
 		"exp":  time.Now().Add(duration).Unix(),
 		"user": load,
-	})).SignedString([]byte(sign))
+	})).SignedString([]byte(SecretKey))
+}
+
+func ParToken(SecretKey string, tokenString string) (*User, error) {
+	token, _ := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(SecretKey), nil
+	})
+	if claims, ok := token.Claims.(*jwtClaims); ok && token.Valid {
+		return &claims.User, nil
+	}
+	return nil, errors.New("token is error")
+}
+
+func (user *User) GenRedisKey(prefix string) string {
+	return fmt.Sprintf("%s%s_%d", prefix, strconv.Itoa(user.UserId), user.Timestamp)
 }
 
 func SetToken(conn redis.Conn, redisKey string, value string) error {
