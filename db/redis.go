@@ -2,70 +2,51 @@ package db
 
 import (
 	"encoding/json"
-	"os"
 
 	"common/log"
 
 	"github.com/gomodule/redigo/redis"
 )
 
-var (
-	Redis redis.Conn
-)
-
-func InitRedis(address string) redis.Conn {
-	openRedis(address)
-	return Redis
+type Redis struct {
+	redis.Conn
 }
 
-func openRedis(address string) {
+func GetRedis(address string) *Redis {
 	conn, err := redis.Dial("tcp", address)
-	if err != nil {
+	if err != nil || conn == nil {
 		log.Error(" - Redis连接失败 - ", err.Error())
-		os.Exit(0)
+		return nil
 	}
-
-	Redis = conn
+	return &Redis{conn}
 }
 
-// key seconds
-func SetKeyExpire(key string, seconds int) error {
-	_, err := Redis.Do("EXPIRE", key, seconds)
+func (r *Redis) SetKeyExpire(key string, seconds int) error {
+	_, err := r.Do("EXPIRE", key, seconds)
 	return err
 }
 
-// del key
-func DelKey(key string) error {
-	_, err := Redis.Do("DEL", key)
-	return err
-}
-
-// set key-value for string
-func SetKey(key string, value string) error {
-	_, err := Redis.Do("SET", key, value)
-	return err
-}
-
-// get key-value for string
-func GetKey(key string) (value string, err error) {
-	return redis.String(Redis.Do("GET", key))
-}
-
-// set key-value for interface
-func SetKeyInterface(key string, s interface{}) error {
-	jsonByte, err := json.Marshal(s)
+func (r *Redis) Set(key string, value interface{}) error {
+	bs, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	_, err = Redis.Do("SET", key, string(jsonByte))
+	_, err = r.Do("SET", key, string(bs))
 	return err
 }
 
-// get key-value for interface
-func GetKeyInterface(key string, value interface{}) error {
-	jsonStr, err := redis.String(Redis.Do("GET", key))
+func (r *Redis) Get(key string, values ...interface{}) (string, error) {
+	jsonStr, err := redis.String(r.Do("GET", key))
 	if err != nil {
-		return err
+		return "", err
 	}
-	return json.Unmarshal([]byte(jsonStr), value)
+	for k := range values {
+		return "", json.Unmarshal([]byte(jsonStr), values[k])
+	}
+	return jsonStr, err
+}
+
+func (r *Redis) Del(key string) error {
+	_, err := r.Do("DEL", key)
+	return err
 }

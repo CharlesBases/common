@@ -25,7 +25,7 @@ var jwtConfig = auth.JWTConfig{
 	SecretKey: SecretKey,
 	// VerifyToken: func(token string, user *auth.User) bool {
 	// 	redisKey := user.GenRedisKey(RedisTokenPrefix)
-	// 	tokenStr, err := auth.GetToken(db.InitRedis("192.168.1.88:4399"), redisKey)
+	// 	tokenStr, err := auth.GetToken(db.InitRedis(), redisKey)
 	// 	if err != nil {
 	// 		log.Warn(err)
 	// 	}
