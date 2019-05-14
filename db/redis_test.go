@@ -29,7 +29,7 @@ func TestRedis(t *testing.T) {
 	fmt.Println("name:  ", str)
 	Redis.Del("name")
 
-	err = Redis.Set("peo", &Peo{Name: "李四", Age: 18})
+	err = Redis.Set("peo", &Peo{"李四", 18})
 	if err != nil {
 		fmt.Println(err)
 		return
