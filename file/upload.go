@@ -1,4 +1,8 @@
-package utils
+package file
+
+/*
+ 文件上传
+*/
 
 import (
 	"fmt"

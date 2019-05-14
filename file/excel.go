@@ -1,15 +1,18 @@
-package utils
+package file
+
+/*
+ 导出Excel
+*/
 
 import (
 	"common/log"
-	"common/web/weberror"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
-
-	"github.com/gin-gonic/gin"
 )
 
 type excel struct {
@@ -17,17 +20,20 @@ type excel struct {
 	Value []map[int]interface{} `json:"value"`
 }
 
-func Excel(c *gin.Context) {
-	e := excel{}
-	err := c.BindJSON(&e)
+func Excel(r *http.Request) {
+	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error(err)
-		c.JSON(http.StatusOK, weberror.NewParameterInvalidError(err.Error()))
+		return
+	}
+	e := excel{}
+	err = json.Unmarshal(bytes, &e)
+	if err != nil {
+		log.Error(err)
 		return
 	}
 
 	name := fmt.Sprintf(`%s.xlsx`, time.Now().Format("2006-01-02 13:04:05"))
-
 	xlsx := excelize.NewFile()
 	index := xlsx.NewSheet("Sheet1")
 
@@ -41,10 +47,9 @@ func Excel(c *gin.Context) {
 	err = xlsx.SaveAs(fmt.Sprintf(`%s/%s`, e.Path, name))
 	if err != nil {
 		log.Error(err)
-		c.JSON(http.StatusOK, weberror.NewFileSaveBaseError(err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, weberror.Success())
+	return
 }
 
 func cell(line int, row int) string {

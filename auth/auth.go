@@ -12,7 +12,7 @@ import (
 )
 
 func GetUser(r *http.Request) (userId int, err error) {
-	value := r.Context().Value("userId")
+	value := r.FormValue("userId")
 	userId, err = strconv.Atoi(fmt.Sprintf(`%v`, value))
 	if err != nil {
 		return -1, errors.New("userId has no value in http request context")

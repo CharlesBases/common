@@ -1,4 +1,4 @@
-package email
+package message
 
 import (
 	"crypto/tls"
@@ -17,13 +17,15 @@ type EmailMessage struct {
 	Attach      string
 }
 
-// NewEmailMessage 返回消息对象
-// from: 发件人
-// subject: 标题
-// contentType: 内容的类型 text/plain text/html
-// attach: 附件
-// to: 收件人
-// cc: 抄送人
+/*
+ NewEmailMessage    返回消息对象
+ from               发件人
+ subject            标题
+ contentType        内容的类型 text/plain text/html
+ attach             附件
+ to                 收件人
+ cc                 抄送人
+*/
 func NewEmailMessage(from, subject, contentType, content, attach string, to, cc []string) *EmailMessage {
 	return &EmailMessage{
 		From:        from,
