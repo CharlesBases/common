@@ -49,28 +49,23 @@ func NewEmailClient(host, username, password string, port int, message *EmailMes
 }
 
 // SendMessage 发送邮件
-func (ec *EmailClient) SendMessage() (bool, error) {
-
+func (ec *EmailClient) SendEmail() (bool, error) {
 	d := gomail.NewPlainDialer(ec.Host, ec.Port, ec.Username, ec.Password)
 	if 587 == ec.Port {
 		d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
-	dm := gomail.NewMessage()
-	dm.SetHeader("From", ec.Message.From)
-	dm.SetHeader("To", ec.Message.To...)
-
+	m := gomail.NewMessage()
+	m.SetHeader("From", ec.Message.From)
+	m.SetHeader("To", ec.Message.To...)
 	if len(ec.Message.Cc) != 0 {
-		dm.SetHeader("Cc", ec.Message.Cc...)
+		m.SetHeader("Cc", ec.Message.Cc...)
 	}
-
-	dm.SetHeader("Subject", ec.Message.Subject)
-	dm.SetBody(ec.Message.ContentType, ec.Message.Content)
-
+	m.SetHeader("Subject", ec.Message.Subject)
+	m.SetBody(ec.Message.ContentType, ec.Message.Content)
 	if ec.Message.Attach != "" {
-		dm.Attach(ec.Message.Attach)
+		m.Attach(ec.Message.Attach)
 	}
-
-	if err := d.DialAndSend(dm); err != nil {
+	if err := d.DialAndSend(m); err != nil {
 		return false, err
 	}
 	return true, nil
