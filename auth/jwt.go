@@ -118,11 +118,11 @@ func JWT(jwtcfg JWTConfig) func(w http.ResponseWriter, r *http.Request, next htt
 		b, _ := json.Marshal(&tokenError)
 		w.Write(b)
 	}
-	return InterceptHandlerFunc(jwtcfg, h)
+	return intercept(jwtcfg, h)
 }
 
 // 拦截配置
-func InterceptHandlerFunc(cfg InterceptConfig, h negroni.HandlerFunc) negroni.HandlerFunc {
+func intercept(cfg InterceptConfig, h negroni.HandlerFunc) negroni.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		if cfg == nil {
 			h(rw, r, next)
@@ -130,29 +130,25 @@ func InterceptHandlerFunc(cfg InterceptConfig, h negroni.HandlerFunc) negroni.Ha
 		}
 		excludes := cfg.Excludes()
 		includes := cfg.Includes()
+
 		var pass bool
 		requestURI := r.RequestURI
-		index := strings.Index(requestURI, "?")
-		if index != -1 {
-			requestURI = requestURI[0:index]
+		if index := strings.Index(requestURI, "?"); index != -1 {
+			requestURI = requestURI[:index]
 		}
-		if includes == nil || len(includes) == 0 {
+
+		if len(includes) == 0 {
 			pass = true
 		} else {
-			for i := range includes {
+			for _, v := range includes {
 				if cfg.Fast() {
-					if includes[i] == requestURI {
+					if strings.Compare(v, requestURI) == 0 {
 						pass = true
 						break
 					}
 				} else {
-					matched, err := regexp.MatchString(includes[i], requestURI)
-					if err != nil {
-						log.Error(err)
-						continue
-					}
-					if matched {
-						pass = matched
+					if regexp.MustCompile(v).MatchString(requestURI) {
+						pass = true
 						break
 					}
 				}
@@ -162,23 +158,19 @@ func InterceptHandlerFunc(cfg InterceptConfig, h negroni.HandlerFunc) negroni.Ha
 			next(rw, r)
 			return
 		}
-		if excludes == nil || len(excludes) == 0 {
+		if len(excludes) == 0 {
 			pass = true
 		} else {
-			for i := range excludes {
+			for _, v := range excludes {
 				if cfg.Fast() {
-					if excludes[i] == requestURI {
+					if strings.Compare(v, requestURI) == 0 {
 						pass = false
 						break
+
 					}
 				} else {
-					matched, err := regexp.MatchString(excludes[i], requestURI)
-					if err != nil {
-						log.Error(err)
-						continue
-					}
-					if matched {
-						pass = !matched
+					if regexp.MustCompile(v).MatchString(requestURI) {
+						pass = false
 						break
 					}
 				}
