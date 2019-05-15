@@ -40,9 +40,9 @@ type JWTConfig struct {
 }
 
 type InterceptConfig interface {
-	Includes() []string
-	Excludes() []string
-	Fast() bool // ture:direct，false:regexp
+	Includes() []string // 优先级：高
+	Excludes() []string // 优先级：低
+	Fast() bool         // ture:direct，false:regexp
 }
 
 type DefaultInterceptConfig struct {
@@ -128,55 +128,45 @@ func intercept(cfg InterceptConfig, h negroni.HandlerFunc) negroni.HandlerFunc {
 			h(rw, r, next)
 			return
 		}
-		excludes := cfg.Excludes()
-		includes := cfg.Includes()
-
-		var pass bool
+		isVerify := true
 		requestURI := r.RequestURI
 		if index := strings.Index(requestURI, "?"); index != -1 {
 			requestURI = requestURI[:index]
 		}
 
-		if len(includes) == 0 {
-			pass = true
-		} else {
-			for _, v := range includes {
+		if len(cfg.Includes()) != 0 {
+			isVerify = false
+			for _, v := range cfg.Includes() {
 				if cfg.Fast() {
 					if strings.Compare(v, requestURI) == 0 {
-						pass = true
+						isVerify = true
 						break
 					}
 				} else {
 					if regexp.MustCompile(v).MatchString(requestURI) {
-						pass = true
+						isVerify = true
 						break
 					}
 				}
 			}
 		}
-		if !pass {
-			next(rw, r)
-			return
-		}
-		if len(excludes) == 0 {
-			pass = true
-		} else {
-			for _, v := range excludes {
+		if len(cfg.Excludes()) != 0 {
+			for _, v := range cfg.Excludes() {
 				if cfg.Fast() {
 					if strings.Compare(v, requestURI) == 0 {
-						pass = false
+						isVerify = false
 						break
 
 					}
 				} else {
 					if regexp.MustCompile(v).MatchString(requestURI) {
-						pass = false
+						isVerify = false
 						break
 					}
 				}
 			}
 		}
-		if pass {
+		if isVerify {
 			h(rw, r, next)
 		} else {
 			log.Warn("don't interception: ", requestURI)
