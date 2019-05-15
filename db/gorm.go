@@ -17,7 +17,7 @@ var (
 	maxOpenConns = 1000
 )
 
-func InitGorm(database string) *gorm.DB {
+func GetGorm(database string) *gorm.DB {
 	openMySql(database)
 	return DB
 }
