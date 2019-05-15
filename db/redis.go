@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"common/log"
 
@@ -26,12 +27,20 @@ func (r *Redis) SetKeyExpire(key string, seconds int) error {
 	return err
 }
 
-func (r *Redis) Set(key string, value interface{}) error {
+func (r *Redis) Set(key string, value interface{}, seconds ...int) error {
 	bs, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	_, err = r.Do("SET", key, string(bs))
+	args := []interface{}{
+		key,
+		string(bs),
+	}
+	for _, v := range seconds {
+		args = append(args, "EX")
+		args = append(args, strconv.Itoa(v))
+	}
+	_, err = r.Do("SET", args...)
 	return err
 }
 

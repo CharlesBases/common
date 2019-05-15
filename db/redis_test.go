@@ -42,4 +42,17 @@ func TestRedis(t *testing.T) {
 	}
 	fmt.Println("peo:   ", peo)
 	Redis.Del("peo")
+
+	err = Redis.Set("name", "李四", 5)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	str, err = Redis.Get("name")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("name:  ", str)
+	Redis.Del("name")
 }
