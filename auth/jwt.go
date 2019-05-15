@@ -138,7 +138,7 @@ func intercept(cfg InterceptConfig, h negroni.HandlerFunc) negroni.HandlerFunc {
 			isVerify = false
 			for _, v := range cfg.Includes() {
 				if cfg.Fast() {
-					if strings.Compare(v, requestURI) == 0 {
+					if v == requestURI {
 						isVerify = true
 						break
 					}
@@ -153,7 +153,7 @@ func intercept(cfg InterceptConfig, h negroni.HandlerFunc) negroni.HandlerFunc {
 		if len(cfg.Excludes()) != 0 {
 			for _, v := range cfg.Excludes() {
 				if cfg.Fast() {
-					if strings.Compare(v, requestURI) == 0 {
+					if v == requestURI {
 						isVerify = false
 						break
 
