@@ -1,11 +1,14 @@
 package wechat
 
 import (
-	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/CharlesBases/common/db"
+	"github.com/CharlesBases/common/web/request"
+)
+
+var (
+	address = "192.168.1.88:6379"
 )
 
 const (
@@ -26,35 +29,32 @@ func GetWeChat() *Wechat {
 }
 
 func (wechat *Wechat) getAccessToken() (string, bool) {
-	Redis := db.GetRedis()
-	accessToken, err := Redis.Get("wx5f3252c4af7c1805_authorizer_access_token").Result()
-	if err == nil {
-		//if wechat.CheckAccessToken(access_token) {
-		// 检查AccessToken是否有用
-		return accessToken, true
-		//}
-		// 失效 - 抢新的
-		//log.Info("抢 AccessToken")
+	Redis := db.GetRedis(address)
+	if accessToken, err := Redis.Get("authorizer_access_token"); err == nil {
+		if checkAccessToken(accessToken) {
+			return accessToken, true
+		}
 	}
 
-	resp, err := Get("https://api.weixin.qq.com/cgi-bin/token?appid=" + wechat.conf.AppID +
-		"&secret=" + wechat.conf.AppSecret +
-		"&grant_type=client_credential")
-	if err == nil {
-		if resp.IsOk() {
-			data := []byte(resp.Body)
-			var f map[string]interface{}
-			json.Unmarshal(data, &f)
-			errcode := f["errcode"]
-			if errcode != nil {
-				return fmt.Sprintf("%f", f["errcode"].(float64)), false
-			} else {
-				// TODO access_token存redis
-				_ = Redis.Set("access_token", f["access_token"].(string), 7000*time.Second).Err()
-				return f["access_token"].(string), true
-			}
+	if resp, err := request.Request("GET", "https://api.weixin.qq.com/cgi-bin/token?appid="+wechat.conf.AppID+"&secret="+wechat.conf.AppSecret+"&grant_type=client_credential"); err == nil {
+		if resp.Body["errcode"] != nil {
+			return fmt.Sprintf(`%v`, resp.Body["errcode"]), false
+		} else {
+			Redis.Set("authorizer_access_token", resp.Body["access_token"])
+			return resp.Body["access_token"].(string), true
 		}
-		return "error", false
 	}
 	return "error", false
+}
+
+func checkAccessToken(accessToken string) bool {
+	if resp, err := request.Request("GET", "https://api.weixin.qq.com/cgi-bin/menu/get?access_token="+accessToken); err == nil {
+		if resp.Body["errcode"] != nil {
+			return false
+		} else {
+			return true
+		}
+	} else {
+		return false
+	}
 }
