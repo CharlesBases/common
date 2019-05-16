@@ -35,8 +35,7 @@ func (wechat *Wechat) getAccessToken() (string, bool) {
 			return accessToken, true
 		}
 	}
-
-	if resp, err := request.Request("GET", "https://api.weixin.qq.com/cgi-bin/token?appid="+wechat.conf.AppID+"&secret="+wechat.conf.AppSecret+"&grant_type=client_credential"); err == nil {
+	if resp, err := request.Request("GET", getAccessTokenUrl(wechat.conf.AppID, wechat.conf.AppSecret)); err == nil {
 		if resp.Body["errcode"] != nil {
 			return fmt.Sprintf(`%v`, resp.Body["errcode"]), false
 		} else {
@@ -48,7 +47,7 @@ func (wechat *Wechat) getAccessToken() (string, bool) {
 }
 
 func checkAccessToken(accessToken string) bool {
-	if resp, err := request.Request("GET", "https://api.weixin.qq.com/cgi-bin/menu/get?access_token="+accessToken); err == nil {
+	if resp, err := request.Request("GET", genAccessTokenUrl(accessToken)); err == nil {
 		if resp.Body["errcode"] != nil {
 			return false
 		} else {
@@ -57,4 +56,12 @@ func checkAccessToken(accessToken string) bool {
 	} else {
 		return false
 	}
+}
+
+func getAccessTokenUrl(appID string, appSecret string) string {
+	return fmt.Sprintf(`https://api.weixin.qq.com/cgi-bin/token?appid=%s&secret=%s&grant_type=client_credential`, appID, appSecret)
+}
+
+func genAccessTokenUrl(accessToken string) string {
+	return fmt.Sprintf(`https://api.weixin.qq.com/cgi-bin/menu/get?access_token=%s`, accessToken)
 }
