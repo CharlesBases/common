@@ -20,7 +20,7 @@ type EmailMessage struct {
 	Attach      string   // 附件
 }
 
-func GetDialer(userName string, passWord string, host string, port int) *Dialer {
+func GetDialer(host string, port int, userName string, passWord string) *Dialer {
 	return &Dialer{gomail.NewDialer(host, port, userName, passWord)}
 }
 

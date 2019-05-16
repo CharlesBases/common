@@ -4,7 +4,7 @@ import "testing"
 
 func TestEmail(t *testing.T) {
 
-	dia := GetDialer("userName", "passWord", "host", 465)
+	dia := GetDialer("host", 465, "userName", "passWord")
 
 	dia.SendEmail(&EmailMessage{
 		From:        "form",
