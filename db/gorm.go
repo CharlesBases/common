@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"os"
 
 	"common/log"
@@ -25,18 +26,12 @@ func GetGorm(database string) *gorm.DB {
 func openMySql(database string) {
 	db, err := gorm.Open("mysql", database)
 	if err != nil {
-		log.Error(" - 数据库连接失败 - ", err.Error())
+		log.Error(fmt.Sprintf(" - db dsn(%s) error - ", database), err.Error())
 		os.Exit(0)
 	}
 
-	if db.DB() == nil {
-		log.Error(" - 数据库连接出现未知错误 - ", err.Error())
-		os.Exit(0)
-	}
-
-	err = db.DB().Ping()
-	if err != nil {
-		log.Error(" - 数据库Ping不通 - ", err.Error())
+	if err = db.DB().Ping(); err != nil {
+		log.Error(fmt.Sprintf(" - db dsn(%s) ping - ", database), err.Error())
 		os.Exit(0)
 	}
 
