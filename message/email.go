@@ -11,7 +11,6 @@ type Dialer struct {
 
 // 内容
 type EmailMessage struct {
-	From        string   // 发件人
 	To          []string // 收件人
 	Cc          []string // 抄送人
 	Subject     string   // 标题
@@ -27,7 +26,7 @@ func GetDialer(host string, port int, userName string, passWord string) *Dialer 
 // SendMessage 发送邮件
 func (dia *Dialer) SendEmail(em *EmailMessage) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", em.From)
+	m.SetAddressHeader("From", dia.Username, "")
 	m.SetHeader("To", em.To...)
 	if len(em.Cc) != 0 {
 		m.SetHeader("Cc", em.Cc...)
