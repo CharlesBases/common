@@ -19,10 +19,11 @@ type Response struct {
  arg[0] booy
 
  arg[1] header
-	dedault
-	{
+
+ PS:
+	default:
 		"Content-type": "application/json"
-	}
+
 */
 func Request(method string, url string, args ...map[string]interface{}) (*Response, error) {
 	client := new(http.Client)
@@ -63,5 +64,5 @@ func Request(method string, url string, args ...map[string]interface{}) (*Respon
 			return response, nil
 		}
 	}
-	return nil, errors.New("request error")
+	return nil, errors.New(fmt.Sprintf(`http new request url(%s) error - %v`, url, err))
 }
