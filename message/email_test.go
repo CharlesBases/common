@@ -7,7 +7,6 @@ func TestEmail(t *testing.T) {
 	dia := GetDialer("host", 465, "userName", "passWord")
 
 	dia.SendEmail(&EmailMessage{
-		From:        "form",
 		To:          []string{},
 		Cc:          []string{},
 		Subject:     "subject",

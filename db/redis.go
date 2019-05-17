@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"common/log"
-
 	"github.com/gomodule/redigo/redis"
+
+	"github.com/CharlesBases/common/log"
 )
 
 type Redis struct {

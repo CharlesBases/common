@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	seelog "common/log"
-
 	"github.com/urfave/negroni"
+
+	seelog "github.com/CharlesBases/common/log"
 )
 
 var (

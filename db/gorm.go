@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"common/log"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+
+	"github.com/CharlesBases/common/log"
 )
 
 var (
