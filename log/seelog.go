@@ -31,10 +31,10 @@ func init() {
 					<rollingfile formatid="main" type="date" filename="./log/seelog.log" datepattern="2006.01.02" maxrolls="90" namemode="prefix"/>
 				</outputs>
 				<formats>
-					<format id="main"  format="[%Date(2006-01-02 15:04:05.000)][%LEVEL] %Func %File:%Line ==&gt; %Msg%n"/>
-					<format id="info"  format="%EscM(32)[%Date(2006-01-02 15:04:05.000)][%LEVEL] %Func %File:%Line ==&gt; %Msg%n%EscM(0)"/>
-					<format id="debug" format="%EscM(36)[%Date(2006-01-02 15:04:05.000)][%LEVEL] %Func %File:%Line ==&gt; %Msg%n%EscM(0)"/>
-					<format id="error" format="%EscM(31)[%Date(2006-01-02 15:04:05.000)][%LEVEL] %Func %File:%Line ==&gt; %Msg%n%EscM(0)"/>
+					<format id="main" format="[%Date(2006-01-02 15:04:05.000)][%LEV] %Func %File:%Line ==&gt; %Msg%n"/>
+					<format id="info" format="%EscM(32)[%Date(2006-01-02 15:04:05.000)][%LEV] %Func %File:%Line ==&gt; %Msg%n%EscM(0)"/>
+					<format id="debug" format="%EscM(36)[%Date(2006-01-02 15:04:05.000)][%LEV] %Func %File:%Line ==&gt; %Msg%n%EscM(0)"/>
+					<format id="error" format="%EscM(31)[%Date(2006-01-02 15:04:05.000)][%LEV] %Func %File:%Line ==&gt; %Msg%n%EscM(0)"/>
 				</formats>
 			</seelog>`)
 	} else {
