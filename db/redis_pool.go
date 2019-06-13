@@ -1,6 +1,11 @@
 package db
 
-import "github.com/gomodule/redigo/redis"
+import (
+	"fmt"
+	"time"
+
+	"github.com/gomodule/redigo/redis"
+)
 
 var address string
 
@@ -17,11 +22,18 @@ type RedisPool struct {
 func GetRedisPool() *RedisPool {
 	return &RedisPool{
 		&redis.Pool{
-			MaxActive: MaxActive,
-			MaxIdle:   MaxIdle,
-			Wait:      Wait,
+			IdleTimeout: time.Hour,
+			MaxActive:   MaxActive,
+			MaxIdle:     MaxIdle,
+			Wait:        Wait,
 			Dial: func() (conn redis.Conn, e error) {
 				return redis.Dial("tcp", address)
+			},
+			TestOnBorrow: func(conn redis.Conn, t time.Time) error {
+				if _, err := conn.Do("PING"); err != nil {
+					return fmt.Errorf("redis error: %v", err)
+				}
+				return nil
 			},
 		},
 	}
