@@ -2,7 +2,8 @@ package db
 
 import (
 	"fmt"
-	"os"
+	"sync"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -16,23 +17,30 @@ var (
 	debug        = false
 	maxIdleConns = 2000
 	maxOpenConns = 1000
+
+	Sync sync.RWMutex
 )
 
-func GetGorm(database string) *gorm.DB {
-	openMySql(database)
-	return DB
+func InitGorm(database string) {
+	initMySql(database)
+
+	go func() {
+		ticker := time.NewTicker(time.Second * 10)
+		for {
+			<-ticker.C
+			if !ping() {
+				log.Error(fmt.Sprintf(" - db ping error, connect again. - "))
+				initMySql(database)
+			}
+		}
+	}()
 }
 
-func openMySql(database string) {
+func initMySql(database string) {
 	db, err := gorm.Open("mysql", database)
 	if err != nil {
 		log.Error(fmt.Sprintf(" - db dsn(%s) error - ", database), err.Error())
-		os.Exit(0)
-	}
-
-	if err = db.DB().Ping(); err != nil {
-		log.Error(fmt.Sprintf(" - db dsn(%s) ping - ", database), err.Error())
-		os.Exit(0)
+		return
 	}
 
 	db.DB().SetMaxIdleConns(maxIdleConns)
@@ -49,6 +57,18 @@ func openMySql(database string) {
 	}
 
 	DB = db
+}
+
+func ping() bool {
+	Sync.RLock()
+	status := true
+	if err := DB.DB().Ping(); err != nil {
+		DB.Close()
+		DB = nil
+		status = false
+	}
+	Sync.RUnlock()
+	return status
 }
 
 type Logger struct {
