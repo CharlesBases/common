@@ -63,8 +63,9 @@ func ping() bool {
 	Sync.RLock()
 	status := true
 	if err := DB.DB().Ping(); err != nil {
-		DB.Close()
-		DB = nil
+		if DB != nil {
+			DB.Close()
+		}
 		status = false
 	}
 	Sync.RUnlock()
