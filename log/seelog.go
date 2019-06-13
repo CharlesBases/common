@@ -41,7 +41,7 @@ func init() {
 		seelog.Infof("using seelog configed from %s", defaultSeelogConfig)
 	}
 	logger.SetAdditionalStackDepth(0)
-	seelog.UseLogger(logger)
+	seelog.ReplaceLogger(logger)
 }
 
 func Trace(v ...interface{}) {
