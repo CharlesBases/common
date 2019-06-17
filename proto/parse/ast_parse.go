@@ -126,7 +126,7 @@ func (file *File) ParseFunc(name string, funcType *ast.FuncType) Func {
 }
 
 // 解析ast方法声明中的表达式
-func ParseExpr(expr ast.Expr) (typeName string) {
+func ParseExpr(expr ast.Expr) (fieldType string) {
 	switch expr.(type) {
 	case *ast.StarExpr:
 		starExpr := expr.(*ast.StarExpr)
@@ -146,7 +146,7 @@ func ParseExpr(expr ast.Expr) (typeName string) {
 		ident := expr.(*ast.Ident)
 		return ident.Name
 	default:
-		return typeName
+		return fieldType
 	}
 }
 
@@ -154,24 +154,23 @@ func ParseExpr(expr ast.Expr) (typeName string) {
 func (file *File) ParseField(astField []*ast.Field) []Field {
 	fields := make([]Field, 0, len(astField))
 	for _, field := range astField {
-		typeName := ParseExpr(field.Type)
-		protoType := file.parseType(typeName)
+		fieldType := ParseExpr(field.Type)
+		protoType := file.parseType(fieldType)
 
-		var name string
-		name = strings.Replace(typeName, "[]", "", -1)
+		name := strings.Replace(fieldType, "[]", "", -1)
 		name = strings.Replace(name, "*", "", -1)
 
-		var myType = name
+		var variableType = name
 		var pkgSort string
-		if strings.Contains(typeName, ".") {
-			index := strings.Index(typeName, name)
-			str := typeName[0:index]
+		if strings.Contains(fieldType, ".") {
+			index := strings.Index(fieldType, name)
+			str := fieldType[0:index]
 			lastIndex := strings.Index(name, ".")
 			if lastIndex != -1 {
-				myType = "#" + name[lastIndex:]
+				variableType = "#" + name[lastIndex:]
 				pkgSort = name[:lastIndex]
 			}
-			myType = str + myType
+			variableType = str + variableType
 		}
 		imp, ok := file.ImportA[pkgSort]
 		if !ok || imp == "" {
@@ -184,7 +183,7 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 
 		if field.Names == nil || len(field.Names) == 0 {
 			var name string
-			name = strings.Replace(typeName, "[", "", -1)
+			name = strings.Replace(fieldType, "[", "", -1)
 			name = strings.Replace(name, "]", "", -1)
 			name = strings.Replace(name, "*", "", -1)
 			name = strings.Replace(name, ".", "", -1)
@@ -193,22 +192,26 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 			name += "0"
 			fieldname := title(name)
 			field := Field{
-				Name:      name,
-				FieldName: fieldname,
-				GoType:    typeName,
-				Package:   imp,
-				ProtoType: protoType,
+				Name:         name,
+				FieldName:    fieldname,
+				Variable:     fieldname,
+				VariableType: variableType,
+				GoType:       fieldType,
+				Package:      imp,
+				ProtoType:    protoType,
 			}
 			fields = append(fields, field)
 		} else {
 			for _, name := range field.Names {
 				fieldname := title(name.Name)
 				field := Field{
-					Name:      name.Name,
-					FieldName: fieldname,
-					GoType:    typeName,
-					Package:   imp,
-					ProtoType: protoType,
+					Name:         name.Name,
+					FieldName:    name.Name,
+					Variable:     fieldname,
+					VariableType: variableType,
+					GoType:       fieldType,
+					Package:      imp,
+					ProtoType:    protoType,
 				}
 				fields = append(fields, field)
 			}
@@ -218,40 +221,40 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 }
 
 // 解析ast字段列表
-func ParseFieleList(astField []*ast.Field) []Field {
-	fields := make([]Field, 0, len(astField))
-	for _, field := range astField {
-		typeName := ParseExpr(field.Type)
-		if field.Names == nil || len(field.Names) == 0 {
-			var name string
-			name = strings.Replace(typeName, "[", "", -1)
-			name = strings.Replace(name, "]", "", -1)
-			name = strings.Replace(name, "*", "", -1)
-			name = strings.Replace(name, ".", "", -1)
-			name = strings.Replace(name, "{", "", -1)
-			name = strings.Replace(name, "}", "", -1)
-			name += "0"
-			fieldname := title(name)
-			p := Field{
-				Name:      name,
-				FieldName: fieldname,
-				GoType:    typeName,
-			}
-			fields = append(fields, p)
-		} else {
-			for _, name := range field.Names {
-				fieldname := title(name.Name)
-				p := Field{
-					Name:      name.Name,
-					FieldName: fieldname,
-					GoType:    typeName,
-				}
-				fields = append(fields, p)
-			}
-		}
-	}
-	return fields
-}
+// func ParseFieleList(astField []*ast.Field) []Field {
+// 	fields := make([]Field, 0, len(astField))
+// 	for _, field := range astField {
+// 		fieldType := ParseExpr(field.Type)
+// 		if field.Names == nil || len(field.Names) == 0 {
+// 			var name string
+// 			name = strings.Replace(fieldType, "[", "", -1)
+// 			name = strings.Replace(name, "]", "", -1)
+// 			name = strings.Replace(name, "*", "", -1)
+// 			name = strings.Replace(name, ".", "", -1)
+// 			name = strings.Replace(name, "{", "", -1)
+// 			name = strings.Replace(name, "}", "", -1)
+// 			name += "0"
+// 			fieldname := title(name)
+// 			p := Field{
+// 				Name:      name,
+// 				FieldName: fieldname,
+// 				GoType:    fieldType,
+// 			}
+// 			fields = append(fields, p)
+// 		} else {
+// 			for _, name := range field.Names {
+// 				fieldname := title(name.Name)
+// 				p := Field{
+// 					Name:      name.Name,
+// 					FieldName: fieldname,
+// 					GoType:    fieldType,
+// 				}
+// 				fields = append(fields, p)
+// 			}
+// 		}
+// 	}
+// 	return fields
+// }
 
 func title(name string) string {
 	builder := strings.Builder{}

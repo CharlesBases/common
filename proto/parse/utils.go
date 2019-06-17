@@ -80,8 +80,9 @@ type Field struct {
 	Package      string // go类型定义的所在包
 	IsField      bool   // struct中的字段
 	Variable     string // 被赋值变量
-	VariableCall string
-	IsRecursion  bool // 递归应用类型
+	VariableType string // 变量类型
+	VariableCall string // 变量调用名
+	IsRecursion  bool   // 递归应用类型
 }
 
 func (root *Package) ParseStruct(message []Message, astFile *ast.File) *File {

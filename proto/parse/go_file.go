@@ -145,16 +145,16 @@ func (file *File) ParsePkgStruct(root *Package) {
 }
 
 func (file *File) ParseStructs() {
-	for k, v := range file.Structs {
-		for k1, v := range v.Fields {
-			value := file.parseType(v.GoType)
-			file.Structs[k].Fields[k1].ProtoType = value
+	for structIndex, fileStruct := range file.Structs {
+		for fieldIndex, field := range fileStruct.Fields {
+			protoType := file.parseType(field.GoType)
+			file.Structs[structIndex].Fields[fieldIndex].ProtoType = protoType
 		}
 	}
 }
 
 func (file *File) ParseStructMessage() {
-	message := make(map[string][]Message)
+	structMessage := make(map[string][]Message, 0)
 	for key, val := range file.Message {
 		imp := strings.TrimPrefix(val, "*")
 		index := strings.Index(imp, ".")
@@ -162,24 +162,24 @@ func (file *File) ParseStructMessage() {
 			_, ok := goBaseType[val]
 			if !ok {
 				pkgpath := file.PkgPath
-				if message[pkgpath] == nil {
-					message[pkgpath] = make([]Message, 0)
+				if structMessage[pkgpath] == nil {
+					structMessage[pkgpath] = make([]Message, 0)
 				}
-				mg := Message{
+				message := Message{
 					Name:     key,
 					ExprName: val,
 					FullName: pkgpath,
 				}
-				message[pkgpath] = append(message[pkgpath], mg)
+				structMessage[pkgpath] = append(structMessage[pkgpath], message)
 			}
 		} else {
 			impPrefix := imp[:index]
 			imp, ok := file.ImportA[impPrefix]
 			if ok {
-				if message[imp] == nil {
-					message[imp] = make([]Message, 0)
+				if structMessage[imp] == nil {
+					structMessage[imp] = make([]Message, 0)
 				}
-				message[imp] = append(message[imp], Message{
+				structMessage[imp] = append(structMessage[imp], Message{
 					Name:     key,
 					ExprName: val,
 					FullName: imp,
@@ -187,24 +187,24 @@ func (file *File) ParseStructMessage() {
 			}
 		}
 	}
-	file.StructMessage = message
+	file.StructMessage = structMessage
 }
 
-func (file *File) parseType(vType string) (value string) {
+func (file *File) parseType(dataType string) (protoType string) {
 	if file.Message == nil {
-		file.Message = map[string]string{}
+		file.Message = make(map[string]string, 0)
 	}
 	var prefix string
-	if !strings.HasPrefix(vType, "[]byte") {
-		if strings.HasPrefix(vType, "[]") {
+	if !strings.HasPrefix(dataType, "[]byte") {
+		if strings.HasPrefix(dataType, "[]") {
 			prefix = "repeated "
-			vType = strings.TrimPrefix(vType, "[]")
+			dataType = strings.TrimPrefix(dataType, "[]")
 		}
 	}
 
 	if prefix == "" { // 不是数组
-		if strings.HasPrefix(vType, "map") && vType != "map[string]interface{}" {
-			vType1 := vType[4:]
+		if strings.HasPrefix(dataType, "map") && dataType != "map[string]interface{}" {
+			vType1 := dataType[4:]
 			index := strings.LastIndex(vType1, "]")
 
 			key1 := vType1[:index]
@@ -213,18 +213,18 @@ func (file *File) parseType(vType string) (value string) {
 		}
 	}
 
-	value, ok := protoMap[vType]
+	protoType, ok := protoMap[dataType]
 	if !ok {
-		value = strings.TrimPrefix(vType, "*")
-		lastIndex := strings.LastIndex(value, ".")
+		protoType = strings.TrimPrefix(dataType, "*")
+		lastIndex := strings.LastIndex(protoType, ".")
 		if lastIndex != -1 {
-			value = value[lastIndex+1:]
+			protoType = protoType[lastIndex+1:]
 		}
-		if value != "Context" && vType != "context.Context" {
-			file.Message[value] = vType
+		if protoType != "Context" && dataType != "context.Context" {
+			file.Message[protoType] = dataType
 		}
 	}
-	return prefix + value
+	return prefix + protoType
 }
 
 func (file *File) GoTypeConfig() {

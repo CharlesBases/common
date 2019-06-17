@@ -7,10 +7,11 @@ import (
 	"strings"
 
 	log "github.com/cihub/seelog"
-	proto "github.com/golang/protobuf/ptypes/struct"
+	_struct "github.com/golang/protobuf/ptypes/struct"
+	// _struct "github.com/gogo/protobuf/types"
 )
 
-func DecodeProtoStruct2Map(protoStruct *proto.Struct) map[string]interface{} {
+func DecodeProtoStruct2Map(protoStruct *_struct.Struct) map[string]interface{} {
 	if protoStruct == nil {
 		return nil
 	}
@@ -21,22 +22,22 @@ func DecodeProtoStruct2Map(protoStruct *proto.Struct) map[string]interface{} {
 	return Map
 }
 
-func DecodeProtoStruct2Interface(protoStruct *proto.Value) interface{} {
+func DecodeProtoStruct2Interface(protoStruct *_struct.Value) interface{} {
 	if protoStruct == nil {
 		return nil
 	}
 	switch kind := protoStruct.Kind.(type) {
-	case *proto.Value_NullValue:
+	case *_struct.Value_NullValue:
 		return nil
-	case *proto.Value_NumberValue:
+	case *_struct.Value_NumberValue:
 		return kind.NumberValue
-	case *proto.Value_StringValue:
+	case *_struct.Value_StringValue:
 		return kind.StringValue
-	case *proto.Value_BoolValue:
+	case *_struct.Value_BoolValue:
 		return kind.BoolValue
-	case *proto.Value_StructValue:
+	case *_struct.Value_StructValue:
 		return DecodeProtoStruct2Map(kind.StructValue)
-	case *proto.Value_ListValue:
+	case *_struct.Value_ListValue:
 		Interface := make([]interface{}, len(kind.ListValue.Values))
 		for key, val := range kind.ListValue.Values {
 			Interface[key] = DecodeProtoStruct2Interface(val)
@@ -48,119 +49,118 @@ func DecodeProtoStruct2Interface(protoStruct *proto.Value) interface{} {
 }
 
 // EncodeMap2ProtoStruct converts a map[string]interface{} to a ptypes.Struct
-func EncodeMap2ProtoStruct(v map[string]interface{}) *proto.Struct {
-	size := len(v)
-	if size == 0 {
+func EncodeMap2ProtoStruct(mapParam map[string]interface{}) *_struct.Struct {
+	size := len(mapParam)
+	if len(mapParam) == 0 {
 		return nil
 	}
-	fields := make(map[string]*proto.Value, size)
-	for k, v := range v {
-		fields[k] = EncodeInterface2ProtoStruct(v)
+	fields := make(map[string]*_struct.Value, size)
+	for k, v := range mapParam {
+		fields[k] = EncodeInterface2ProtoValue(v)
 	}
-	return &proto.Struct{
+	return &_struct.Struct{
 		Fields: fields,
 	}
 }
 
 // EncodeInterface2ProtoStruct converts an interface{} to a ptypes.Value
-func EncodeInterface2ProtoStruct(v interface{}) *proto.Value {
-	switch v := v.(type) {
+func EncodeInterface2ProtoValue(interfaceParam interface{}) *_struct.Value {
+	switch value := interfaceParam.(type) {
 	case nil:
 		return nil
 	case bool:
-		return &proto.Value{
-			Kind: &proto.Value_BoolValue{
-				BoolValue: v,
+		return &_struct.Value{
+			Kind: &_struct.Value_BoolValue{
+				BoolValue: value,
 			},
 		}
 	case int:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case int8:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case int32:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case int64:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case uint:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case uint8:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case uint32:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case uint64:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case float32:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: float64(v),
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: float64(value),
 			},
 		}
 	case float64:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
-				NumberValue: v,
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
+				NumberValue: value,
 			},
 		}
 	case string:
-		return &proto.Value{
-			Kind: &proto.Value_StringValue{
-				StringValue: v,
+		return &_struct.Value{
+			Kind: &_struct.Value_StringValue{
+				StringValue: value,
 			},
 		}
 	case error:
-		fields := make(map[string]*proto.Value, 2)
-		fields["Code"] = &proto.Value{
-			Kind: &proto.Value_NumberValue{
+		fields := make(map[string]*_struct.Value, 2)
+		fields["Code"] = &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
 				NumberValue: -1,
 			},
 		}
-		fields["Err"] = &proto.Value{
-			Kind: &proto.Value_StringValue{
-				StringValue: v.Error(),
+		fields["Err"] = &_struct.Value{
+			Kind: &_struct.Value_StringValue{
+				StringValue: value.Error(),
 			},
 		}
-		return &proto.Value{
-			Kind: &proto.Value_StructValue{
-				StructValue: &proto.Struct{
+		return &_struct.Value{
+			Kind: &_struct.Value_StructValue{
+				StructValue: &_struct.Struct{
 					Fields: fields,
 				},
 			},
 		}
 	default:
-		// Fallback to reflection for other types
-		return toValue(reflect.ValueOf(v))
+		return toValue(reflect.ValueOf(value))
 	}
 }
 
@@ -203,29 +203,29 @@ func ConvertStruct2Map(obj interface{}) map[string]interface{} {
 	return data
 }
 
-func toValue(v reflect.Value) *proto.Value {
+func toValue(v reflect.Value) *_struct.Value {
 	switch v.Kind() {
 	case reflect.Bool:
-		return &proto.Value{
-			Kind: &proto.Value_BoolValue{
+		return &_struct.Value{
+			Kind: &_struct.Value_BoolValue{
 				BoolValue: v.Bool(),
 			},
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
 				NumberValue: float64(v.Int()),
 			},
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
 				NumberValue: float64(v.Uint()),
 			},
 		}
 	case reflect.Float32, reflect.Float64:
-		return &proto.Value{
-			Kind: &proto.Value_NumberValue{
+		return &_struct.Value{
+			Kind: &_struct.Value_NumberValue{
 				NumberValue: v.Float(),
 			},
 		}
@@ -244,13 +244,13 @@ func toValue(v reflect.Value) *proto.Value {
 			return nil
 		}
 		size := v.Len()
-		values := make([]*proto.Value, size)
+		values := make([]*_struct.Value, size)
 		for i := 0; i < size; i++ {
 			values[i] = toValue(v.Index(i))
 		}
-		return &proto.Value{
-			Kind: &proto.Value_ListValue{
-				ListValue: &proto.ListValue{
+		return &_struct.Value{
+			Kind: &_struct.Value_ListValue{
+				ListValue: &_struct.ListValue{
 					Values: values,
 				},
 			},
@@ -261,7 +261,7 @@ func toValue(v reflect.Value) *proto.Value {
 		if size == 0 {
 			return nil
 		}
-		fields := make(map[string]*proto.Value, size)
+		fields := make(map[string]*_struct.Value, size)
 		for i := 0; i < size; i++ {
 			field := t.Field(i)
 			// 支持内嵌结构体展开
@@ -289,9 +289,9 @@ func toValue(v reflect.Value) *proto.Value {
 		if len(fields) == 0 {
 			return nil
 		}
-		return &proto.Value{
-			Kind: &proto.Value_StructValue{
-				StructValue: &proto.Struct{
+		return &_struct.Value{
+			Kind: &_struct.Value_StructValue{
+				StructValue: &_struct.Struct{
 					Fields: fields,
 				},
 			},
@@ -301,7 +301,7 @@ func toValue(v reflect.Value) *proto.Value {
 		if len(keys) == 0 {
 			return nil
 		}
-		fields := make(map[string]*proto.Value, len(keys))
+		fields := make(map[string]*_struct.Value, len(keys))
 		for _, k := range keys {
 			if k.Kind() == reflect.String {
 				fields[k.String()] = toValue(v.MapIndex(k))
@@ -310,17 +310,17 @@ func toValue(v reflect.Value) *proto.Value {
 		if len(fields) == 0 {
 			return nil
 		}
-		return &proto.Value{
-			Kind: &proto.Value_StructValue{
-				StructValue: &proto.Struct{
+		return &_struct.Value{
+			Kind: &_struct.Value_StructValue{
+				StructValue: &_struct.Struct{
 					Fields: fields,
 				},
 			},
 		}
 	default:
 		// Last resort
-		return &proto.Value{
-			Kind: &proto.Value_StringValue{
+		return &_struct.Value{
+			Kind: &_struct.Value_StringValue{
 				StringValue: fmt.Sprint(v),
 			},
 		}
