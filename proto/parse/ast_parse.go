@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"fmt"
 	"go/ast"
 	"strconv"
 	"strings"
@@ -8,11 +9,10 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-func (infor *File) ParseFile(file *ast.File) {
-	infor.ParseImport(file)
-
+func (file *File) ParseFile(astFile *ast.File) {
+	file.ParseImport(astFile)
 	inters := make([]Interface, 0)
-	ast.Inspect(file, func(x ast.Node) bool {
+	ast.Inspect(astFile, func(x ast.Node) bool {
 		inter := Interface{}
 		switch x.(type) {
 		case *ast.FuncDecl:
@@ -26,22 +26,22 @@ func (infor *File) ParseFile(file *ast.File) {
 			inter.Name = decl.Name.Name + "Func"
 			log.Info("find func:", inter.Name)
 			funcType := decl.Type
-			f := infor.ParseFunc(decl.Name.Name, funcType)
-			inter.Funcs = []Func{f}
+			fun := file.ParseFunc(decl.Name.Name, funcType)
+			inter.Funcs = []Func{fun}
 			inter.IsFunc = true
 			inters = append(inters, inter)
 		case *ast.TypeSpec:
-			s := x.(*ast.TypeSpec)
-			inter.Name = s.Name.Name
-			s1, ok1 := s.Type.(*ast.InterfaceType)
-			if !ok1 {
+			typeSpec := x.(*ast.TypeSpec)
+			inter.Name = typeSpec.Name.Name
+			interfaceType, ok := typeSpec.Type.(*ast.InterfaceType)
+			if !ok {
 				return true
 			}
 			log.Info("find interface:", inter.Name)
-			inter.Funcs = make([]Func, len(s1.Methods.List))
-			for i, field := range s1.Methods.List {
-				f := infor.ParseFunc(field.Names[0].Name, field.Type.(*ast.FuncType))
-				inter.Funcs[i] = f
+			inter.Funcs = make([]Func, len(interfaceType.Methods.List))
+			for index, field := range interfaceType.Methods.List {
+				fun := file.ParseFunc(field.Names[0].Name, field.Type.(*ast.FuncType))
+				inter.Funcs[index] = fun
 			}
 			inters = append(inters, inter)
 		default:
@@ -49,41 +49,44 @@ func (infor *File) ParseFile(file *ast.File) {
 		}
 		return false
 	})
-	infor.Interfaces = inters
-
+	file.Interfaces = inters
 }
 
-func (infor *File) ParseImport(file *ast.File) {
-	imports := make(map[string]string)
-	ast.Inspect(file, func(x ast.Node) bool {
+func (file *File) ParseImport(astFile *ast.File) {
+	ImportA := make(map[string]string)
+	ast.Inspect(astFile, func(x ast.Node) bool {
 		switch x.(type) {
 		case *ast.ImportSpec:
 			importSpec := x.(*ast.ImportSpec)
 			var key string
-			value := importSpec.Path.Value
-			value, _ = strconv.Unquote(value)
+			val := importSpec.Path.Value
+			val, _ = strconv.Unquote(val)
 			if importSpec.Name != nil {
 				key = importSpec.Name.Name
 			} else {
-				lastIndex := strings.LastIndex(value, "/")
+				lastIndex := strings.LastIndex(val, "/")
 				if lastIndex == -1 {
-					key = value
+					key = val
 				} else {
-					key = value[lastIndex+1:]
+					key = val[lastIndex+1:]
 				}
 			}
-			imports[key] = value
+			ImportA[key] = val
 		default:
 			return true
 		}
 		return false
 	})
-	infor.Imports = imports
+	file.ImportA = ImportA
+	file.ImportB = make(map[string]string, 0)
+	for key, val := range file.ImportA {
+		file.ImportB[val] = key
+	}
 }
 
-func (infor *File) ParseStruct(name string, st *ast.StructType) Struct {
+func (file *File) ParseStruct(name string, structType *ast.StructType) Struct {
 	s := Struct{Fields: make([]Field, 0)}
-	fields := infor.ParseField(st.Fields.List)
+	fields := file.ParseField(structType.Fields.List)
 	for _, field := range fields {
 		if strings.Title(field.Name) == field.Name {
 			field.IsField = true
@@ -91,23 +94,33 @@ func (infor *File) ParseStruct(name string, st *ast.StructType) Struct {
 		}
 	}
 	s.Name = name
-	s.Pkg = infor.PkgPath
+	s.Pkg = file.PkgPath
 	return s
 }
 
 // 解析ast函数
-func (infor *File) ParseFunc(name string, funcType *ast.FuncType) Func {
+func (file *File) ParseFunc(name string, funcType *ast.FuncType) Func {
 	fun := Func{}
 	// 函数名
 	fun.Name = name
 	// 函数参数
 
 	if funcType.Params != nil {
-		fun.Params = infor.ParseField(funcType.Params.List)
+		fun.Params = file.ParseField(funcType.Params.List)
 	}
 	// 函数返回值
 	if funcType.Results != nil {
-		fun.Results = infor.ParseField(funcType.Results.List)
+		fun.Results = file.ParseField(funcType.Results.List)
+	}
+	// 第一个参数是否是context
+	if len(fun.Params) >= 1 {
+		t := fun.Params[0].Package
+		if t == "context" || t == "golang.org/x/net/context" {
+			s := file.ImportB[t]
+			if fun.Params[0].GoType == s+".Context" {
+				fun.Params = fun.Params[1:]
+			}
+		}
 	}
 	return fun
 }
@@ -138,35 +151,35 @@ func ParseExpr(expr ast.Expr) (typeName string) {
 }
 
 // 解析ast字段列表
-func (infor *File) ParseField(fieldList []*ast.Field) []Field {
-	ls := make([]Field, 0, len(fieldList))
-	for _, field := range fieldList {
+func (file *File) ParseField(astField []*ast.Field) []Field {
+	fields := make([]Field, 0, len(astField))
+	for _, field := range astField {
 		typeName := ParseExpr(field.Type)
-		protoType := infor.parseType(typeName)
+		protoType := file.parseType(typeName)
 
 		var name string
 		name = strings.Replace(typeName, "[]", "", -1)
 		name = strings.Replace(name, "*", "", -1)
 
-		var mtype = name
+		var myType = name
 		var pkgSort string
 		if strings.Contains(typeName, ".") {
 			index := strings.Index(typeName, name)
-			s := typeName[0:index]
+			str := typeName[0:index]
 			lastIndex := strings.Index(name, ".")
 			if lastIndex != -1 {
-				mtype = "#" + name[lastIndex:]
+				myType = "#" + name[lastIndex:]
 				pkgSort = name[:lastIndex]
 			}
-			mtype = s + mtype
+			myType = str + myType
 		}
-		pkg, ok := infor.Imports[pkgSort]
-		if !ok || pkg == "" {
-			pkg = infor.PkgPath
+		imp, ok := file.ImportA[pkgSort]
+		if !ok || imp == "" {
+			imp = file.PkgPath
 		}
-		_, o := goBaseType[name]
-		if o {
-			pkg = ""
+		_, ok = goBaseType[name]
+		if ok {
+			imp = ""
 		}
 
 		if field.Names == nil || len(field.Names) == 0 {
@@ -178,36 +191,36 @@ func (infor *File) ParseField(fieldList []*ast.Field) []Field {
 			name = strings.Replace(name, "{", "", -1)
 			name = strings.Replace(name, "}", "", -1)
 			name += "0"
-			fieldname := toExportField(name)
-			p := Field{
+			fieldname := title(name)
+			field := Field{
 				Name:      name,
 				FieldName: fieldname,
 				GoType:    typeName,
-				Package:   pkg,
+				Package:   imp,
 				ProtoType: protoType,
 			}
-			ls = append(ls, p)
+			fields = append(fields, field)
 		} else {
 			for _, name := range field.Names {
-				fieldname := toExportField(name.Name)
-				p := Field{
+				fieldname := title(name.Name)
+				field := Field{
 					Name:      name.Name,
 					FieldName: fieldname,
 					GoType:    typeName,
-					Package:   pkg,
+					Package:   imp,
 					ProtoType: protoType,
 				}
-				ls = append(ls, p)
+				fields = append(fields, field)
 			}
 		}
 	}
-	return ls
+	return fields
 }
 
 // 解析ast字段列表
-func FieldListParse(fieldList []*ast.Field) []Field {
-	ls := make([]Field, 0, len(fieldList))
-	for _, field := range fieldList {
+func ParseFieleList(astField []*ast.Field) []Field {
+	fields := make([]Field, 0, len(astField))
+	for _, field := range astField {
 		typeName := ParseExpr(field.Type)
 		if field.Names == nil || len(field.Names) == 0 {
 			var name string
@@ -218,54 +231,51 @@ func FieldListParse(fieldList []*ast.Field) []Field {
 			name = strings.Replace(name, "{", "", -1)
 			name = strings.Replace(name, "}", "", -1)
 			name += "0"
-			fieldname := toExportField(name)
+			fieldname := title(name)
 			p := Field{
 				Name:      name,
 				FieldName: fieldname,
 				GoType:    typeName,
 			}
-			ls = append(ls, p)
+			fields = append(fields, p)
 		} else {
 			for _, name := range field.Names {
-				fieldname := toExportField(name.Name)
+				fieldname := title(name.Name)
 				p := Field{
 					Name:      name.Name,
 					FieldName: fieldname,
 					GoType:    typeName,
 				}
-				ls = append(ls, p)
+				fields = append(fields, p)
 			}
 		}
 	}
-	return ls
+	return fields
 }
 
-func toExportField(name string) string {
-	split := strings.Split(name, "_")
-	titles := make([]string, len(split))
-	for k, v := range split {
-		titles[k] = strings.Title(v)
+func title(name string) string {
+	builder := strings.Builder{}
+	for _, val := range strings.Split(name, "_") {
+		builder.WriteString(strings.Title(val))
 	}
-	name = strings.Join(titles, "")
-	return name
+	return builder.String()
 }
 
 // 生成导入包
-func genImport(k, v string) string {
-	sort := pkgForSort(v)
-	if k == sort {
-		return `"` + v + `"`
+func genImport(key, val string) string {
+	sort := packageSort(val)
+	if key == sort {
+		return fmt.Sprintf(`"%s"`, val)
 	} else {
-		return k + ` "` + v + `"`
+		return fmt.Sprintf(`%s "%s"`, key, val)
 	}
-
 }
 
-func pkgForSort(p string) string {
-	index := strings.LastIndex(p, "/")
-	pkgForSort := p
+func packageSort(Package string) string {
+	index := strings.LastIndex(Package, "/")
+	packageSort := Package
 	if index != -1 {
-		pkgForSort = p[index+1:]
+		packageSort = Package[index+1:]
 	}
-	return pkgForSort
+	return packageSort
 }

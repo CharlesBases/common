@@ -7,17 +7,15 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-const ServiceClientTemplate = `//this file is generated from {{.PkgPath}}
-{{$pkg := .PkgPath|pkgForSort}}
-{{$Package := .Package}}
+const ServiceClientTemplate = `// this file is generated from {{.PkgPath}}
 package {{.Package}}
 import (
 	"github.com/gogo/protobuf/types"
-	{{range $i, $v := .ImportPkgs}}{{genImport $i $v}} {{end}}
+	{{range $i, $v := .ImportPkgs}}{{funcImport $i $v}} {{end}}
 )
 {{range $i, $v := .Funcs}}
-{{$ParamsLen := .Params|len|reduce1}}
-{{$ResultsLen := .Results|len|reduce1}}
+{{$ParamsLen := .Params|len|funcReduce}}
+{{$ResultsLen := .Results|len|funcReduce}}
 func ({{$iface.Name}} *{{$iface.Name}}MicroClientImpl) {{.Name}}({{declareContextParam $v}}{{range $i1, $v1 := .Params}}{{.Name}} {{.GoType}} {{if ne $i1  $ParamsLen }},{{end}} {{end}}) ({{range $i1, $v1 := .Results}} {{.Name}} {{.GoType}}{{if ne $i1 $ResultsLen }},{{end}}{{end}}) {
 	_req := new({{.Name}}Req_)
 	{{range $i1, $v1 := .Params}}
@@ -53,11 +51,11 @@ func (file *File) GenClient(wr io.Writer) {
 	log.Info("generating client file ...")
 	t := template.New("pb.client.go")
 	t.Funcs(template.FuncMap{
-		"reduce1": func(i int) int {
+		"funcReduce": func(i int) int {
 			return i - 1
 		},
-		"pkgForSort": pkgForSort,
-		"genImport":  genImport,
+		"funcSort":   packageSort,
+		"funcImport": genImport,
 	})
 
 	parsed, err := t.Parse(ServiceClientTemplate)

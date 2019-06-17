@@ -10,17 +10,17 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-
-	log "github.com/cihub/seelog"
-	"golang.org/x/tools/imports"
+	"strings"
 
 	"github.com/CharlesBases/common/proto/parse"
+	log "github.com/cihub/seelog"
+	"golang.org/x/tools/imports"
 )
 
 var (
-	goFile  = flag.String("file", "/Users/sun/go/SourceCode/src/github.com/CharlesBases/common/proto/bll.go", "full path of the file")
-	genPath = flag.String("path", "./proto/pb/", "full path of the generate folder")
-	pkgName = flag.String("package", "pb", "package name in .proto file")
+	goFile       = flag.String("file", "/Users/sun/go/SourceCode/src/github.com/CharlesBases/common/proto/A/bll.go", "full path of the file")
+	generatePath = flag.String("path", "./pb/", "full path of the generate folder")
+	protoPackage = flag.String("package", "", "package name in .proto file")
 )
 
 var (
@@ -46,45 +46,63 @@ func init() {
 					<format id="error" format="%EscM(31)[%Date(2006-01-02 15:04:05.000)][%LEV] ==&gt; %Msg%n%EscM(0)"/>
 				</formats>
 			</seelog>`)
-	log.UseLogger(logger)
+	log.ReplaceLogger(logger)
 }
 
 func main() {
 	defer log.Flush()
-
 	flag.Parse()
 
-	serFile = path.Join(*genPath, serFile)
-	cliFile = path.Join(*genPath, cliFile)
-	proFile = path.Join(*genPath, proFile)
-
-	os.MkdirAll(*genPath, 0666)
+	// goFilePackagePath := func() string {
+	// 	list := filepath.SplitList(os.Getenv("GOPATH"))
+	// 	packagePath := filepath.Dir(*goFile)
+	// 	for i := range list {
+	// 		if strings.Contains(packagePath, list[i]) {
+	// 			return packagePath[len(list[i])+5:]
+	// 		}
+	// 	}
+	// 	return ""
+	// }()
 
 	if *goFile == "" {
 		_, file, _, _ := runtime.Caller(0)
 		goFile = &file
 	}
+	// if *generatePath == "" {
+	// 	*generatePath = path.Join(goFilePackagePath, "pb/")
+	// }
+	if *protoPackage == "" {
+		*protoPackage = filepath.Base(*generatePath)
+	}
+
+	serFile = path.Join(*generatePath, serFile)
+	cliFile = path.Join(*generatePath, cliFile)
+	proFile = path.Join(*generatePath, proFile)
+
+	os.MkdirAll(*generatePath, 0755)
 
 	log.Info("parsing files for go: ", *goFile)
 
-	var infor *parse.File
-
-	fileSet := token.NewFileSet()
-	astFile, err := parser.ParseFile(fileSet, *goFile, nil, 0)
+	astFile, err := parser.ParseFile(token.NewFileSet(), *goFile, nil, 0) // 获取文件信息
 	if err != nil {
 		log.Error(err)
 		return
 	}
-	gofile := parse.NewFile(*pkgName, "github.com/CharlesBases/common/proto/")
+	gofile := parse.NewFile(*protoPackage, func() string {
+		list := filepath.SplitList(os.Getenv("GOPATH"))
+		packagePath := filepath.Dir(*goFile)
+		for i := range list {
+			if strings.Contains(packagePath, list[i]) {
+				return packagePath[len(list[i])+5:]
+			}
+		}
+		return ""
+	}())
 	gofile.ParseFile(astFile)
 	if len(gofile.Interfaces) == 0 {
 		return
 	}
-	gofile.ParsePkgStruct(&parse.Package{PkgPath: func() string {
-		path, _ := os.Getwd()
-		return path
-	}()})
-	infor = &gofile
+	gofile.ParsePkgStruct(&parse.Package{PkgPath: gofile.PkgPath})
 
 	// generate proto file
 	profile, err := createFile(proFile)
@@ -93,7 +111,7 @@ func main() {
 		return
 	}
 	defer profile.Close()
-	infor.GenProtoFile(profile)
+	gofile.GenProtoFile(profile)
 
 	log.Info("run the protoc command ...")
 	dir := filepath.Dir(proFile)
@@ -104,7 +122,7 @@ func main() {
 	}
 	log.Info("protoc complete !")
 
-	infor.GoTypeConfig()
+	gofile.GoTypeConfig()
 
 	// generate server file
 	serfile, err := createFile(serFile)
@@ -114,7 +132,7 @@ func main() {
 	}
 	defer serfile.Close()
 	bufferSer := bytes.NewBuffer([]byte{})
-	infor.GenServer(bufferSer)
+	gofile.GenServer(bufferSer)
 	serfile.Write(bufferSer.Bytes())
 	byteSlice, e1 := imports.Process("", bufferSer.Bytes(), nil)
 	if e1 != nil {
@@ -133,7 +151,7 @@ func main() {
 	}
 	defer clifile.Close()
 	bufferCli := bytes.NewBuffer([]byte{})
-	infor.GenClient(bufferCli)
+	gofile.GenClient(bufferCli)
 	clifile.Write(bufferCli.Bytes())
 	byteSlice, e := imports.Process("", bufferCli.Bytes(), nil)
 	if e != nil {
@@ -150,9 +168,8 @@ func main() {
 func createFile(fileName string) (*os.File, error) {
 	os.RemoveAll(fileName)
 	log.Info("create file: " + fileName)
-	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.Create(fileName)
 	if err != nil {
-		log.Error(err)
 		return file, err
 	}
 	return file, nil

@@ -7,105 +7,63 @@ import (
 	"strings"
 
 	log "github.com/cihub/seelog"
-	proto "github.com/gogo/protobuf/types"
+	proto "github.com/golang/protobuf/ptypes/struct"
 )
 
-// 将Struct 解码为 map[string]interface{}
-func DecodeToMap(s *proto.Struct) map[string]interface{} {
-	if s == nil {
+func DecodeProtoStruct2Map(protoStruct *proto.Struct) map[string]interface{} {
+	if protoStruct == nil {
 		return nil
 	}
-	m := map[string]interface{}{}
-	for k, v := range s.Fields {
-		m[k] = DecodeValue(v)
+	Map := map[string]interface{}{}
+	for key, val := range protoStruct.Fields {
+		Map[key] = DecodeProtoStruct2Interface(val)
 	}
-	return m
+	return Map
 }
 
-// 将Value 解码为 interface
-//  其中Value_StructValue 解码为 map[string]interface{}
-func DecodeValue(v *proto.Value) interface{} {
-	if v == nil {
+func DecodeProtoStruct2Interface(protoStruct *proto.Value) interface{} {
+	if protoStruct == nil {
 		return nil
 	}
-	switch k := v.Kind.(type) {
+	switch kind := protoStruct.Kind.(type) {
 	case *proto.Value_NullValue:
 		return nil
 	case *proto.Value_NumberValue:
-		return k.NumberValue
+		return kind.NumberValue
 	case *proto.Value_StringValue:
-		return k.StringValue
+		return kind.StringValue
 	case *proto.Value_BoolValue:
-		return k.BoolValue
+		return kind.BoolValue
 	case *proto.Value_StructValue:
-		return DecodeToMap(k.StructValue)
+		return DecodeProtoStruct2Map(kind.StructValue)
 	case *proto.Value_ListValue:
-		s := make([]interface{}, len(k.ListValue.Values))
-		for i, e := range k.ListValue.Values {
-			s[i] = DecodeValue(e)
+		Interface := make([]interface{}, len(kind.ListValue.Values))
+		for key, val := range kind.ListValue.Values {
+			Interface[key] = DecodeProtoStruct2Interface(val)
 		}
-		return s
+		return Interface
 	default:
-		panic("protostruct: unknown kind")
+		panic("protos_truct: unknown kind")
 	}
 }
 
-// EncodeMapToStruct converts a map[string]interface{} to a ptypes.Struct
-func EncodeMapToStruct(v map[string]interface{}) *proto.Struct {
+// EncodeMap2ProtoStruct converts a map[string]interface{} to a ptypes.Struct
+func EncodeMap2ProtoStruct(v map[string]interface{}) *proto.Struct {
 	size := len(v)
 	if size == 0 {
 		return nil
 	}
 	fields := make(map[string]*proto.Value, size)
 	for k, v := range v {
-		fields[k] = EncodeToValue(v)
+		fields[k] = EncodeInterface2ProtoStruct(v)
 	}
 	return &proto.Struct{
 		Fields: fields,
 	}
 }
 
-// ConvertMapToStruct converts a map[string]interface{} to a struct
-func ConvertMapToStruct(v map[string]interface{}, p interface{}) (ok bool) {
-	if v == nil {
-		return false
-	}
-	log.Debug(v)
-	bytes, err := json.Marshal(v)
-	if err != nil {
-		log.Error(err)
-		return false
-	}
-	err = json.Unmarshal(bytes, p)
-	if err != nil {
-		log.Error(err)
-		return false
-	}
-	log.Debug(p)
-	return true
-}
-
-// ConvertStructToMap converts a struct to a map[string]interface{}
-func ConvertStructToMap(obj interface{}) map[string]interface{} {
-	if obj == nil {
-		return nil
-	}
-	var data = make(map[string]interface{})
-	bytes, err := json.Marshal(obj)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	err = json.Unmarshal(bytes, &data)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	return data
-}
-
-// EncodeToValue converts an interface{} to a ptypes.Value
-func EncodeToValue(v interface{}) *proto.Value {
+// EncodeInterface2ProtoStruct converts an interface{} to a ptypes.Value
+func EncodeInterface2ProtoStruct(v interface{}) *proto.Value {
 	switch v := v.(type) {
 	case nil:
 		return nil
@@ -181,7 +139,7 @@ func EncodeToValue(v interface{}) *proto.Value {
 				StringValue: v,
 			},
 		}
-	case error: // 错误处理
+	case error:
 		fields := make(map[string]*proto.Value, 2)
 		fields["Code"] = &proto.Value{
 			Kind: &proto.Value_NumberValue{
@@ -204,6 +162,45 @@ func EncodeToValue(v interface{}) *proto.Value {
 		// Fallback to reflection for other types
 		return toValue(reflect.ValueOf(v))
 	}
+}
+
+// ConvertMapToStruct converts a map[string]interface{} to a struct
+func ConvertMap2Struct(v map[string]interface{}, p interface{}) (ok bool) {
+	if v == nil {
+		return false
+	}
+	log.Debug(v)
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+	err = json.Unmarshal(bytes, p)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+	log.Debug(p)
+	return true
+}
+
+// ConvertStructToMap converts a struct to a map[string]interface{}
+func ConvertStruct2Map(obj interface{}) map[string]interface{} {
+	if obj == nil {
+		return nil
+	}
+	var data = make(map[string]interface{})
+	bytes, err := json.Marshal(obj)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	err = json.Unmarshal(bytes, &data)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	return data
 }
 
 func toValue(v reflect.Value) *proto.Value {

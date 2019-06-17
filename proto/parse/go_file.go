@@ -56,7 +56,8 @@ type File struct {
 	PkgPath       string
 	Structs       []Struct
 	Interfaces    []Interface
-	Imports       map[string]string
+	ImportA       map[string]string
+	ImportB       map[string]string
 	Message       map[string]string
 	StructMessage map[string][]Message
 }
@@ -68,10 +69,10 @@ func NewFile(pkgname string, pkgpath string) File {
 	}
 }
 
-func (infor *File) ParsePkgStruct(root *Package) {
-	infor.ParseStructs()
-	infor.ParseStructMessage()
-	structMessage := infor.StructMessage
+func (file *File) ParsePkgStruct(root *Package) {
+	file.ParseStructs()
+	file.ParseStructMessage()
+	structMessage := file.StructMessage
 	packages := make([]Package, 0)
 	for key, value := range structMessage {
 		log.Info("parse structs in package:", key)
@@ -83,115 +84,115 @@ func (infor *File) ParsePkgStruct(root *Package) {
 			continue
 		}
 		files := program.Package(key).Files
-		pkg := Package{root: root}
-		pkg.PkgPath = key
-		pkg.Files = make([]File, 0, len(files))
+		Root := Package{root: root}
+		Root.PkgPath = key
+		Root.Files = make([]File, 0, len(files))
 		for _, file := range files {
-			file := pkg.ParseStruct(value, file)
+			file := Root.ParseStruct(value, file)
 			if file == nil {
 				continue
 			}
-			file.PkgPath = pkg.PkgPath
+			file.PkgPath = Root.PkgPath
 			file.ParsePkgStruct(root)
-			pkg.Files = append(pkg.Files, *file)
+			Root.Files = append(Root.Files, *file)
 		}
-		if len(pkg.Files) == 0 {
+		if len(Root.Files) == 0 {
 			continue
 		}
-		packages = append(packages, pkg)
+		packages = append(packages, Root)
 	}
 	if len(packages) == 0 {
 		return
 	}
-	if len(infor.Structs) == 0 {
-		infor.Structs = make([]Struct, 0)
+	if len(file.Structs) == 0 {
+		file.Structs = make([]Struct, 0)
 	}
-	// 合并结果
 
-	for index := range packages {
-		for _, file := range packages[index].Files {
-			infor.Structs = append(infor.Structs, file.Structs...)
+	// 合并结果
+	for _, packageValue := range packages {
+		for _, fileValue := range packageValue.Files {
+			file.Structs = append(file.Structs, fileValue.Structs...)
 			var i int
-			for key, value := range file.ImportPkgs {
-				_, ok := infor.PkgImports[value]
-				if !ok {
-					_, ok_ := infor.ImportPkgs[key]
-					if ok_ {
-						key_ := key + strconv.Itoa(i)
-						infor.ImportPkgs[key_] = value
-						infor.PkgImports[value] = key_
+			for key, val := range fileValue.ImportA {
+				_, okB := file.ImportB[val]
+				if !okB { // 未导入包
+					_, okA := file.ImportA[val]
+					if okA { //包名会冲突
+						keyIndex := key + strconv.Itoa(i)
+						file.ImportA[keyIndex] = val
+						file.ImportB[val] = keyIndex
 						i++
-					} else {
-						infor.ImportPkgs[key] = value
-						infor.PkgImports[value] = key
+					} else { // 包名不会冲突
+						file.ImportA[key] = val
+						file.ImportB[val] = key
 					}
 				}
 			}
 		}
 	}
 
-	for structKey, structValue := range infor.Structs {
+	for structKey, structValue := range file.Structs {
 		for fieldKey, fieldValue := range structValue.Fields {
 			goType := strings.Replace(fieldValue.GoType, "[", "", -1)
 			goType = strings.Replace(goType, "]", "", -1)
 			goType = strings.Replace(goType, "*", "", -1)
 			if structValue.Name == goType {
-				infor.Structs[structKey].IsRecursion = true
-				infor.Structs[structKey].Fields[fieldKey].IsRecursion = true
+				file.Structs[structKey].IsRecursion = true
+				file.Structs[structKey].Fields[fieldKey].IsRecursion = true
 			}
 		}
 	}
 }
 
-func (infor *File) ParseStructs() {
-	for k, v := range infor.Structs {
+func (file *File) ParseStructs() {
+	for k, v := range file.Structs {
 		for k1, v := range v.Fields {
-			value := infor.parseType(v.GoType)
-			infor.Structs[k].Fields[k1].ProtoType = value
+			value := file.parseType(v.GoType)
+			file.Structs[k].Fields[k1].ProtoType = value
 		}
 	}
 }
 
-func (infor *File) ParseStructMessage() {
+func (file *File) ParseStructMessage() {
 	message := make(map[string][]Message)
-	for k, v := range infor.Message {
-		imp := strings.TrimPrefix(v, "*")
+	for key, val := range file.Message {
+		imp := strings.TrimPrefix(val, "*")
 		index := strings.Index(imp, ".")
 		if index == -1 {
-			_, ok := goBaseType[v]
+			_, ok := goBaseType[val]
 			if !ok {
-				s := infor.PkgPath
-				if message[s] == nil {
-					message[s] = make([]Message, 0)
+				pkgpath := file.PkgPath
+				if message[pkgpath] == nil {
+					message[pkgpath] = make([]Message, 0)
 				}
-				m := Message{
-					Name:     k,
-					ExprName: v,
-					FullName: s,
+				mg := Message{
+					Name:     key,
+					ExprName: val,
+					FullName: pkgpath,
 				}
-				message[s] = append(message[s], m)
+				message[pkgpath] = append(message[pkgpath], mg)
 			}
 		} else {
 			impPrefix := imp[:index]
-			s, ok := infor.ImportPkgs[impPrefix]
+			imp, ok := file.ImportA[impPrefix]
 			if ok {
-				if message[s] == nil {
-					message[s] = make([]Message, 0)
+				if message[imp] == nil {
+					message[imp] = make([]Message, 0)
 				}
-				message[s] = append(message[s], Message{
-					Name:     k,
-					ExprName: v,
-					FullName: s,
+				message[imp] = append(message[imp], Message{
+					Name:     key,
+					ExprName: val,
+					FullName: imp,
 				})
 			}
 		}
 	}
-	infor.StructMessage = message
+	file.StructMessage = message
 }
 
-func (infor *File) parseType(vType string) (value string) {
-	if infor.Message == nil {
-		infor.Message = map[string]string{}
+func (file *File) parseType(vType string) (value string) {
+	if file.Message == nil {
+		file.Message = map[string]string{}
 	}
 	var prefix string
 	if !strings.HasPrefix(vType, "[]byte") {
@@ -208,7 +209,7 @@ func (infor *File) parseType(vType string) (value string) {
 
 			key1 := vType1[:index]
 			value1 := vType1[index+1:]
-			return "map<" + infor.parseType(key1) + ", " + infor.parseType(value1) + "> "
+			return "map<" + file.parseType(key1) + ", " + file.parseType(value1) + "> "
 		}
 	}
 
@@ -220,7 +221,7 @@ func (infor *File) parseType(vType string) (value string) {
 			value = value[lastIndex+1:]
 		}
 		if value != "Context" && vType != "context.Context" {
-			infor.Message[value] = vType //非基本类型
+			file.Message[value] = vType
 		}
 	}
 	return prefix + value
@@ -247,26 +248,26 @@ func (file *File) GoTypeConfig() {
 	}
 }
 
-func (file *File) typeConfig(v *Field) string {
-	if imports, ok := file.PkgImports[v.Package]; ok {
+func (file *File) typeConfig(field *Field) string {
+	if ImportA, ok := file.ImportA[field.Package]; ok {
 		i := 0
-		if strings.Contains(v.GoType, "[]") {
+		if strings.Contains(field.GoType, "[]") {
 			i = i + 2
 		}
-		if strings.Contains(v.GoType, "*") {
+		if strings.Contains(field.GoType, "*") {
 			i = i + 1
 		}
-		index := strings.Index(v.GoType, ".")
+		index := strings.Index(field.GoType, ".")
 		if i == 0 {
 			if index == -1 {
-				return imports + "." + v.GoType
+				return ImportA + "." + field.GoType
 			}
-			return imports + "." + v.GoType[index+1:]
+			return ImportA + "." + field.GoType[index+1:]
 		}
 		if index == -1 {
-			return v.GoType[:i] + imports + "." + v.GoType[i:]
+			return field.GoType[:i] + ImportA + "." + field.GoType[i:]
 		}
-		return v.GoType[:i] + imports + "." + v.GoType[index+1:]
+		return field.GoType[:i] + ImportA + "." + field.GoType[index+1:]
 	}
-	return v.GoType
+	return field.GoType
 }

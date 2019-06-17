@@ -2,7 +2,6 @@ package parse
 
 import (
 	"go/ast"
-	"strconv"
 
 	log "github.com/cihub/seelog"
 )
@@ -73,20 +72,21 @@ type Func struct {
 
 // Field represents a parameter in a function or method signature.
 type Field struct {
-	Name        string // 字段名 原参数名或返回值名或struct中的字段名
-	FieldName   string // 原参数名或返回值名的可导出形式
-	GoType      string // 正常go类型
-	ProtoType   string // proto类型
-	GoExpr      string // go类型的引用前缀
-	Package     string // go类型定义的所在包
-	IsField     bool   // struct中的字段
-	LeftVal     string // 被赋值变量
-	IsRecursion bool   // 递归应用类型
+	Name         string // 字段名 原参数名或返回值名或struct中的字段名
+	FieldName    string // 原参数名或返回值名的可导出形式
+	GoType       string // 正常go类型
+	ProtoType    string // proto类型
+	GoExpr       string // go类型的引用前缀
+	Package      string // go类型定义的所在包
+	IsField      bool   // struct中的字段
+	Variable     string // 被赋值变量
+	VariableCall string
+	IsRecursion  bool // 递归应用类型
 }
 
-func (pkg *Package) ParseStruct(message []Message, astFile *ast.File) *File {
+func (root *Package) ParseStruct(message []Message, astFile *ast.File) *File {
 	file := File{}
-	file.PkgPath = pkg.PkgPath
+	file.PkgPath = root.PkgPath
 
 	file.ParseImport(astFile)
 
@@ -112,11 +112,11 @@ func (pkg *Package) ParseStruct(message []Message, astFile *ast.File) *File {
 					}
 				}
 			}
-			if pkg.root.MessageTypes == nil {
-				pkg.root.MessageTypes = make(map[string][]string, 0)
+			if root.root.MessageTypes == nil {
+				root.root.MessageTypes = make(map[string][]string, 0)
 				isContainsB = false
 			} else {
-				messageType, ok := pkg.root.MessageTypes[pkg.PkgPath]
+				messageType, ok := root.root.MessageTypes[root.PkgPath]
 				if ok {
 					for _, v := range messageType {
 						if v == spec.Name.Name {
@@ -124,59 +124,56 @@ func (pkg *Package) ParseStruct(message []Message, astFile *ast.File) *File {
 						}
 					}
 				} else {
-					pkg.root.MessageTypes[pkg.PkgPath] = make([]string, 0)
+					root.root.MessageTypes[root.PkgPath] = make([]string, 0)
 				}
 			}
 			if isContainsA && !isContainsB {
 				s := file.ParseStruct(spec.Name.Name, structType)
 				log.Info("find struct: ", spec.Name.Name)
 				structs = append(structs, s)
-				pkg.root.MessageTypes[pkg.PkgPath] = append(pkg.root.MessageTypes[pkg.PkgPath], spec.Name.Name)
+				root.root.MessageTypes[root.PkgPath] = append(root.root.MessageTypes[root.PkgPath], spec.Name.Name)
 			}
 		default:
 			return true
 		}
 		return false
 	})
-
 	file.Structs = structs
 	return &file
 }
 
 //把gofiles 汇总到 一个gofile
-func (p *Package) Summary() File {
+func (root *Package) Summary() File {
 	log.Info("SummaryGofiles...")
-	if len(p.Files) == 0 {
+	if len(root.Files) == 0 {
 		return File{}
 	}
-	var gf = p.Files[0]
+	var file = root.Files[0]
 
-	if len(p.Files) > 1 {
-		for k, v := range p.Files[1:] {
-			if k == 0 {
+	if len(root.Files) > 1 {
+		for key, val := range root.Files[1:] {
+			if key == 0 {
 				continue
 			}
-			gf.Structs = append(gf.Structs, v.Structs...)
-			gf.Interfaces = append(gf.Interfaces, v.Interfaces...)
-			//fmt.Print(v.PkgImports, v.ImportPkgs)
-			var i int
-			for k, v := range v.ImportPkgs {
-				_, o1 := gf.PkgImports[v]
-				if !o1 { // 未导入包
-					_, o := gf.ImportPkgs[k]
-					if o { //包名会冲突
-						kk := k + strconv.Itoa(i)
-						gf.ImportPkgs[kk] = v
-						gf.PkgImports[v] = kk
-						i++
-					} else { // 包名不会冲突
-						gf.ImportPkgs[k] = v
-						gf.PkgImports[v] = k
-					}
-				}
-			}
+			file.Structs = append(file.Structs, val.Structs...)
+			file.Interfaces = append(file.Interfaces, val.Interfaces...)
+			// var i int
+			// for imp, quote := range val.Imports {
+			// 	_, ok1 := file.PkgImports[quote]
+			// 	if !ok1 { // 未导入包
+			// 		_, ok2 := file.ImportPkgs[imp]
+			// 		if ok2 { //包名会冲突
+			// 			kk := imp + strconv.Itoa(i)
+			// 			file.ImportPkgs[kk] = quote
+			// 			file.PkgImports[quote] = kk
+			// 			i++
+			// 		} else { // 包名不会冲突
+			// 			file.ImportPkgs[imp] = quote
+			// 			file.PkgImports[quote] = imp
+			// 		}
+			// 	}
+			// }
 		}
 	}
-
-	return gf
+	return file
 }
