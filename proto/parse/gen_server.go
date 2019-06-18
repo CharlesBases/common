@@ -39,12 +39,8 @@ type {{.Name}}ServerImpl struct {
 {{range $funcsIndex, $func := .Funcs}} {{$ParamsLen := .Params|len|funcReduce}} {{$ResultsLen := .Results|len|funcReduce}}
 func ({{$interface.Name}} *{{$interface.Name}}ServerImpl) {{.Name}} (ctx context.Context, serviceRequest *{{.Name}}Req_, serviceResponse *{{.Name}}Resp_) (err_ error) {
 	defer func() {
-		if e := recover(); e != nil {
-			funcName := ""
-			if pc, _, _, ok := runtime.Caller(1); ok {
-				funcName = runtime.FuncForPC(pc).Name()
-			}
-			log.Error(fmt.Sprintf("rpc-server error: %s(%v) \n%s", funcName, e, debug.Stack()))
+		if err := recover(); e != nil {
+			log.Error(fmt.Sprintf("rpc-server error: %v \n%s", err, debug.Stack()))
 		}
 	}()
 	{{range $paramsIndex, $param := .Params}}
