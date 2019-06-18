@@ -13,21 +13,21 @@ syntax = "proto3";
 package {{.Package}};
 
 import "google/protobuf/struct.proto";
-{{range $index, $iface := .Interfaces}}
+{{range $interfaceIndex, $interface := .Interfaces}}
 service {{.Name}} {
-{{range $i0, $v := .Funcs}}	rpc {{.Name}} ({{.Name}}Req_) returns ({{.Name}}Resp_) {} 
+{{range $funcsIndex, $func := .Funcs}}    rpc {{.Name}} ({{.Name}}Req_) returns ({{.Name}}Resp_) {} 
 {{end}}}
-{{range $i, $v := .Funcs}}
+{{range $funcsIndex, $func := .Funcs}}
 message {{.Name}}Req_ {
-{{range $i1, $v1 := .Params}}	{{.ProtoType}} {{.Name}} = {{$i1 | index}};
+{{range $paramsIndex, $param := .Params}}    {{.ProtoType}} {{.Name}} = {{$paramsIndex | index}};
 {{end}}}
 
-message {{$v.Name}}Resp_ {
-{{range $i1, $v1 := .Results}}	{{.ProtoType}} {{.Name}} = {{$i1 | index}};
+message {{$func.Name}}Resp_ {
+{{range $resultsIndex, $vresult:= .Results}}    {{.ProtoType}} {{.Name}} = {{$resultsIndex | index}};
 {{end}}}
-{{end}}{{end}}{{range $k, $v := .Structs}}
-message {{$v.Name}} {
-{{range $i1, $v1 := .Fields}}	{{.ProtoType}} {{.Name}} = {{$i1 | index}};
+{{end}}{{end}}{{range $structsIndex, $struct := .Structs}}
+message {{$struct.Name}} {
+{{range $fieldsIndex, $field := .Fields}}    {{.ProtoType}} {{.Name}} = {{$fieldsIndex | index}};
 {{end}}}
 {{end}}
 `

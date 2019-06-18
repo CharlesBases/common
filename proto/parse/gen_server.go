@@ -117,9 +117,7 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 	}
 	if _, ok := protoBaseType[field.ProtoType]; ok {
 		if isRepeated {
-			builder := strings.Builder{}
-
-			builder.WriteString(fmt.Sprintf(`func() %s {
+			return fmt.Sprintf(`func() %s {
 					list := make(%s, len(%s))
 					for key, val := range %s {
 						list[key] = val
@@ -130,20 +128,15 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 				field.GoType,
 				field.VariableCall,
 				field.VariableCall,
-			))
-
-			return builder.String()
+			)
 		} else {
-			return field.GoType + "(" + field.VariableCall + ")"
+			return fmt.Sprintf("%s(%s)", field.GoType, field.VariableCall)
 		}
-		return fmt.Sprintf("%s(%s)", field.GoType, field.VariableCall)
 	}
 	switch field.ProtoType {
 	case "google.protobuf.Value":
 		if isRepeated {
-			builder := strings.Builder{}
-
-			builder.WriteString(fmt.Sprintf(`func() []interface{} {
+			return fmt.Sprintf(`func() []interface{} {
 					list := make([]interface{}, len(%s))
 					for key, val := range %s {
 						list[key] = proto.DecodeProtoStruct2Interface(val)
@@ -152,38 +145,35 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 				}()`,
 				field.VariableCall,
 				field.VariableCall,
-			))
-
-			return builder.String()
+			)
 		} else {
 			return "proto.DecodeProtoStruct2Interface(" + field.VariableCall + ")"
 		}
 	case "google.protobuf.Struct":
-		if /*field.GoType == "error" {
-			return "nil\n error__:=weberror.BaseWebError{} \n  proto.ConvertMapToStruct(proto.DecodeProtoStruct2Map(" + field.VariableCall + "),&error__)\n" +
-				field.Name + " =error__"
+		if field.GoType == "error" {
+			return fmt.Sprintf(`func() *_struct.Struct {
+				if %s != nil {
+					return proto.EncodeMap2ProtoStruct(map[string]interface{}{"err": %s})
+				}
+				return nil
+			}()`,
+				field.VariableCall,
+			)
 		} else if field.GoType == "[]error" {
-			builder := strings.Builder{}
-
-			builder.WriteString("make([]weberror.BaseWebError")
-			builder.WriteString(",len(")
-			builder.WriteString(field.VariableCall)
-			builder.WriteString("))\n")
-			builder.WriteString("for i, fileStruct := range ")
-			builder.WriteString(field.VariableCall)
-			builder.WriteString("{\n")
-			builder.WriteString(fieldName)
-			builder.WriteString("error__:=weberror.BaseWebError{} \n  proto.ConvertMapToStruct(proto.DecodeProtoStruct2Map(fileStruct),&error__)\n")
-			builder.WriteString("[i]=error__\n")
-			builder.WriteString("}\n")
-
-			return builder.String()
-		} else if*/field.GoType == "map[string]interface{}" {
+			return fmt.Sprintf(`func() []*_struct.Value {
+					list := make([]*_struct.Value, len(%s))
+					for key, val := range %s {
+						list[key] = proto.EncodeInterface2ProtoValue(val)
+					}
+					return list
+				}()`,
+				field.VariableCall,
+				field.VariableCall,
+			)
+		} else if field.GoType == "map[string]interface{}" {
 			return "proto.DecodeProtoStruct2Map(" + field.VariableCall + ")"
 		} else if field.GoType == "[]map[string]interface{}" {
-			builder := strings.Builder{}
-
-			builder.WriteString(fmt.Sprintf(`func() interface{} {
+			return fmt.Sprintf(`func() interface{} {
 					list := make(interface{}, len(%s))
 					for key, val := range %s {
 						list[key] = proto.DecodeProtoStruct2Map(val)
@@ -192,9 +182,7 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 				}()`,
 				field.VariableCall,
 				field.VariableCall,
-			))
-
-			return builder.String()
+			)
 		}
 	default:
 		if isRepeated {
@@ -282,9 +270,7 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 	protoType, ok := protoBaseType[field.ProtoType]
 	if ok {
 		if isRepeated {
-			build := strings.Builder{}
-
-			build.WriteString(fmt.Sprintf(`func() []%s {
+			return fmt.Sprintf(`func() []%s {
 					list := make([]%s, len(%s))
 					for key, val := range %s {
 						list[key] = val
@@ -295,19 +281,15 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				protoType,
 				fieldName,
 				fieldName,
-			))
-
-			return build.String()
+			)
 		} else {
-			return protoType + "(" + fieldName + ")"
+			return fmt.Sprintf("%s(%s)", protoType, fieldName)
 		}
 	}
 	switch field.ProtoType {
 	case "google.protobuf.Value":
 		if isRepeated {
-			build := strings.Builder{}
-
-			build.WriteString(fmt.Sprintf(`func() []*_struct.Value {
+			return fmt.Sprintf(`func() []*_struct.Value {
 					list := make([]*_struct.Value, len(%s))
 					for key, val := range %s {
 						list[key] = proto.EncodeInterface2ProtoValue(val)
@@ -316,17 +298,13 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				}()`,
 				fieldName,
 				fieldName,
-			))
-
-			return build.String()
+			)
 		} else {
 			return "proto.EncodeInterface2ProtoValue(" + fieldName + ")"
 		}
 	case "google.protobuf.Struct":
 		if field.GoType == "[]map[string]interface{}" {
-			build := strings.Builder{}
-
-			build.WriteString(fmt.Sprintf(`func() []*_struct.Struct {
+			return fmt.Sprintf(`func() []*_struct.Struct {
 					list := make([]*_struct.Struct, len(%s))
 					for key, val := range %s {
 						list[key] = proto.EncodeMap2ProtoStruct(val)
@@ -335,13 +313,9 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				}()`,
 				fieldName,
 				fieldName,
-			))
-
-			return build.String()
+			)
 		} else if field.GoType == "[]error" {
-			build := strings.Builder{}
-
-			build.WriteString(fmt.Sprintf(`func() []*_struct.Struct {
+			return fmt.Sprintf(`func() []*_struct.Struct {
 					if %s != nil {
 						list := make([]*_struct.Struct, len(%s))
 						for key, val := range %s {
@@ -354,30 +328,23 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				fieldName,
 				fieldName,
 				fieldName,
-			))
-
-			return build.String()
+			)
 		} else if field.GoType == "error" {
-			build := strings.Builder{}
-
-			build.WriteString(fmt.Sprintf(`func() *_struct.Struct {
+			return fmt.Sprintf(`func() *_struct.Struct {
 					if %s != nil {
 						return proto.EncodeMap2ProtoStruct(map[string]interface{}{"err": %s})
 					}
 					return nil
 				}()`,
 				fieldName,
-				fieldName))
-
-			return build.String()
+				fieldName,
+			)
 		} else if field.GoType == "map[string]interface{}" {
 			return "proto.EncodeMap2ProtoStruct(" + fieldName + ")"
 		}
 	default:
 		if isRepeated {
-			build := strings.Builder{}
-
-			build.WriteString(fmt.Sprintf(`func() []*%s {
+			return fmt.Sprintf(`func() []*%s {
 					list := make([]*%s, len(%s))
 					for key, val := range %s {
 						list[key] = &%s{
@@ -400,7 +367,7 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 						if index != -1 {
 							GoType = GoType[index+1:]
 						}
-						return fmt.Sprintf("to%sMicroModelServer(val)", GoType)
+						return fmt.Sprintf("serverModel$s(val)", GoType)
 					} else {
 						str := strings.Builder{}
 						for _, fileStruct := range file.Structs {
@@ -413,9 +380,7 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 						return str.String()
 					}
 				}(),
-			))
-
-			return build.String()
+			)
 		} else {
 			build := strings.Builder{}
 			if strings.Contains(field.GoType, "*") {
@@ -436,7 +401,7 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 							if index != -1 {
 								GoType = GoType[index+1:]
 							}
-							return fmt.Sprintf("to%sMicroModelServer(%s)", GoType, fieldName)
+							return fmt.Sprintf("serverModel%s(%s)", GoType, fieldName)
 						} else {
 							str := strings.Builder{}
 							str.WriteString(fmt.Sprintf("&%s{\n", field.ProtoType))
@@ -453,7 +418,39 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 					}(),
 				))
 
-				return build.String()
+				return fmt.Sprintf(`func() *%s {
+						if %s != nil {
+							return %s
+						}
+						return nil
+					}()`,
+					field.ProtoType,
+					fieldName,
+					func() string {
+						if field.IsRecursion {
+							GoType := strings.Replace(field.GoType, "[", "", -1)
+							GoType = strings.Replace(GoType, "]", "", -1)
+							GoType = strings.Replace(GoType, "*", "", -1)
+							index := strings.Index(GoType, ".")
+							if index != -1 {
+								GoType = GoType[index+1:]
+							}
+							return fmt.Sprintf("serverModel%s(%s)", GoType, fieldName)
+						} else {
+							str := strings.Builder{}
+							str.WriteString(fmt.Sprintf("&%s{\n", field.ProtoType))
+							for _, fileStruct := range file.Structs {
+								if fileStruct.Name == field.ProtoType {
+									for _, structField := range fileStruct.Fields {
+										str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, fieldName)))
+									}
+								}
+							}
+							str.WriteString("}\n")
+							return str.String()
+						}
+					}(),
+				)
 			} /* else {
 				if field.IsRecursion {
 					GoType := strings.Replace(field.GoType, "[", "", -1)
@@ -463,7 +460,7 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 					if index != -1 {
 						GoType = GoType[index+1:]
 					}
-					return fmt.Sprintf("to%sMicroModelServer(val)", GoType)
+					return fmt.Sprintf("serverModel%s(val)", GoType)
 				} else {
 					str := strings.Builder{}
 					if strings.Contains(field.ProtoType, "map<") {
