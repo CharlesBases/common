@@ -3,13 +3,14 @@ package parse
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"text/template"
 
 	log "github.com/cihub/seelog"
 )
 
-const ServiceServerTemplate = `// this file is generated from {{.PkgPath}} {{$Package := .Package}}
+const ServiceServerTemplate = `// this file is generated from {{.PkgPath}} {{$Package := .PkgPath|funcSort}}
 package {{.Package}}
 
 import (
@@ -39,7 +40,7 @@ type {{.Name}}ServerImpl struct {
 {{range $funcsIndex, $func := .Funcs}} {{$ParamsLen := .Params|len|funcReduce}} {{$ResultsLen := .Results|len|funcReduce}}
 func ({{$interface.Name}} *{{$interface.Name}}ServerImpl) {{.Name}} (ctx context.Context, serviceRequest *{{.Name}}Req_, serviceResponse *{{.Name}}Resp_) (err_ error) {
 	defer func() {
-		if err := recover(); e != nil {
+		if err := recover(); err != nil {
 			log.Error(fmt.Sprintf("rpc-server error: %v \n%s", err, debug.Stack()))
 		}
 	}()
@@ -75,6 +76,9 @@ func (file *File) GenServer(wr io.Writer) {
 	t.Funcs(template.FuncMap{
 		"funcReduce": func(i int) int {
 			return i - 1
+		},
+		"funcSort": func(Package string) string {
+			return filepath.Base(Package)
 		},
 		"service": func(n string) string {
 			if strings.HasSuffix(n, "Service") {
