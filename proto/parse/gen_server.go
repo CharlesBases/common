@@ -3,24 +3,26 @@ package parse
 import (
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 	"text/template"
 
 	log "github.com/cihub/seelog"
 )
 
-const ServiceServerTemplate = `// this file is generated from {{.PkgPath}} {{$Package := .PkgPath|funcSort}}
+const ServiceServerTemplate = `// this file is generated from {{.PkgPath}} {{$Package := .Package}}
 package {{.Package}}
 
 import (
 	"fmt"
 	"runtime"
+	"runtime/debug"
+
+	"{{.PkgPath}}"
+	{{range $index, $importA := .ImportA}}{{generateImport $index $importA}}
+	{{end}}
 
 	proto "github.com/CharlesBases/common/proto/parse"
-	"{{.PkgPath}}"
-	{{range $index, $importA := .ImportA}}{{funcImport $index $importA}}
-	{{end}}
+
 	log "github.com/cihub/seelog"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 )
@@ -34,8 +36,8 @@ func New{{.Name}}Server({{.Name}} {{$Package}}.{{.Name}}) {{.Name}}Server {
 type {{.Name}}ServerImpl struct {
 	{{.Name}} {{$Package}}.{{.Name}}
 }
-{{range $funcsIndex, $func := .Funcs}}{{$ParamsLen := .Params|len|funcReduce}}{{$ResultsLen := .Results|len|funcReduce}}
-func ({{$interface.Name}} *{{$interface.Name}}ServerImpl) {{.Name}} (ctx context.Context, request_ *{{.Name}}Req_, respone_ *{{.Name}}Resp_) (err_ error) {
+{{range $funcsIndex, $func := .Funcs}} {{$ParamsLen := .Params|len|funcReduce}} {{$ResultsLen := .Results|len|funcReduce}}
+func ({{$interface.Name}} *{{$interface.Name}}ServerImpl) {{.Name}} (ctx context.Context, serviceRequest *{{.Name}}Req_, serviceResponse *{{.Name}}Resp_) (err_ error) {
 	defer func() {
 		if e := recover(); e != nil {
 			funcName := ""
@@ -46,24 +48,24 @@ func ({{$interface.Name}} *{{$interface.Name}}ServerImpl) {{.Name}} (ctx context
 		}
 	}()
 	{{range $paramsIndex, $param := .Params}}
-		{{.Name}} := {{convertServerRequest $param "request_"}}
+		{{.Name}} := {{convertServerRequest $param "serviceRequest"}}
 	{{end}}
 
 	{{if ne $ResultsLen -1}}
 		{{range $resultsIndex, $result := .Results}}{{.Name}}{{if ne $resultsIndex $ResultsLen }},{{end}} {{end}} := {{end}}{{$interface.Name}}.{{$interface.Name}}.{{.Name}}(ctx, {{range $paramsIndex, $param := .Params}}{{.Name}}{{if ne $paramsIndex $ParamsLen }},{{end}}{{end}})
 	{{range $resultsIndex, $result := .Results}}
-	respone_.{{.Variable}} = {{convertServerRespone . ""}}
+	serviceResponse.{{.Variable}} = {{convertServerResponse . ""}}
 	{{end}}
 	return 
 } 
 {{end}}
 {{end}}
 {{range $structsIndex, $struct := .Structs}}
-	{{if $struct.IsRecursion }}
+{{if $struct.IsRecursion }}
 func serverModel{{.Name}}(value  model.{{.Name}}) *{{.Name}} {
 	result := &{{.Name}}{} 
 	{{range $fieldsIndex, $field := .Fields}}
-	result.{{.Name}} = {{convertServerRespone . "value"}}
+	result.{{.Name}} = {{convertServerResponse . "value"}}
 	{{end}}
 	return result
 }
@@ -78,18 +80,15 @@ func (file *File) GenServer(wr io.Writer) {
 		"funcReduce": func(i int) int {
 			return i - 1
 		},
-		"funcSort": func(Package string) string {
-			return filepath.Base(Package)
-		},
-		"funcInterface": func(n string) string {
+		"service": func(n string) string {
 			if strings.HasSuffix(n, "Service") {
 				return n
 			}
 			return n + "Service"
 		},
-		"funcImport":           genImport,
-		"convertServerRequest": file.convertServerRequest,
-		"convertServerRespone": file.convertServerRespone,
+		"generateImport":        generateImport,
+		"convertServerRequest":  file.convertServerRequest,
+		"convertServerResponse": file.convertServerResponse,
 	})
 
 	parsed, err := t.Parse(ServiceServerTemplate)
@@ -266,9 +265,9 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 	return field.Name
 }
 
-func (file *File) convertServerRespone(field Field, expr string) string {
+func (file *File) convertServerResponse(field Field, expr string) string {
 	if field.VariableCall == "" {
-		field.VariableCall = "respone_." + field.Variable
+		field.VariableCall = "serviceResponse." + field.Variable
 	}
 	isRepeated := strings.Contains(field.ProtoType, "repeated")
 	if isRepeated {
@@ -407,7 +406,7 @@ func (file *File) convertServerRespone(field Field, expr string) string {
 						for _, fileStruct := range file.Structs {
 							if fileStruct.Name == field.ProtoType {
 								for _, structField := range fileStruct.Fields {
-									str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerRespone(structField, "val")))
+									str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, "val")))
 								}
 							}
 						}
@@ -444,7 +443,7 @@ func (file *File) convertServerRespone(field Field, expr string) string {
 							for _, fileStruct := range file.Structs {
 								if fileStruct.Name == field.ProtoType {
 									for _, structField := range fileStruct.Fields {
-										str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerRespone(structField, fieldName)))
+										str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, fieldName)))
 									}
 								}
 							}
@@ -478,7 +477,7 @@ func (file *File) convertServerRespone(field Field, expr string) string {
 							for _, structField := range fileStruct.Fields {
 								structField.MicroExpr = field.MicroExpr + field.Variable + "."
 								structField.VariableCall = field.MicroExpr + field.Variable + "." + structField.Variable + "="
-								r += "\n" + structField.VariableCall + file.convertServerRespone(structField, fieldName)
+								r += "\n" + structField.VariableCall + file.convertServerResponse(structField, fieldName)
 							}
 						}
 					}

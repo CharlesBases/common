@@ -265,7 +265,7 @@ func title(name string) string {
 }
 
 // 生成导入包
-func genImport(key, val string) string {
+func generateImport(key, val string) string {
 	sort := packageSort(val)
 	if key == sort {
 		return fmt.Sprintf(`"%s"`, val)
