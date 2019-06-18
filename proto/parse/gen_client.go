@@ -124,7 +124,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("(v)\n")
 			sb.WriteString("}\n")
 
-			sb.WriteString(field.LeftVal + rightVal)
+			sb.WriteString(field.VariableCall + rightVal)
 
 			return sb.String()
 		} else {
@@ -154,7 +154,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("proto3.EncodeToValue(v)\n")
 			sb.WriteString("}\n")
 
-			sb.WriteString(field.LeftVal + rightVal)
+			sb.WriteString(field.VariableCall + rightVal)
 
 			return sb.String()
 		} else {
@@ -170,8 +170,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("for i, v := range ")
 			sb.WriteString(name)
 			sb.WriteString("{\n")
-			sb.WriteString(field.MicroExpr)
-			sb.WriteString(field.MicroName)
+			sb.WriteString(field.Variable)
 			sb.WriteString("[i]=")
 			sb.WriteString("proto3.EncodeMapToStruct(v)\n")
 			sb.WriteString("}\n")
@@ -187,8 +186,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("for i, v := range ")
 			sb.WriteString(name)
 			sb.WriteString("{\n")
-			sb.WriteString(field.MicroExpr)
-			sb.WriteString(field.MicroName)
+			sb.WriteString(field.Variable)
 			sb.WriteString("[i]=")
 			sb.WriteString("proto3.EncodeMapToStruct(proto3.ConvertStructToMap(weberror.BaseWebError{Code:-1,Err:errors.New(v.Error())}))\n")
 			sb.WriteString("}\n")
@@ -233,8 +231,8 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("[i]=")
 
 			if field.IsRecursion {
-				if field.LeftVal == field.Name+"=" {
-					field.LeftVal = "v0." + field.Name + "="
+				if field.VariableCall == field.Name+"=" {
+					field.VariableCall = "v0." + field.Name + "="
 				}
 				GoType := strings.Replace(field.GoType, "[", "", -1)
 				GoType = strings.Replace(GoType, "]", "", -1)
@@ -247,12 +245,11 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 
 			} else {
 				r := "new(" + theType + ")\n"
-				for _, v := range gf.Structs {
+				for _, v := range file.Structs {
 					if v.Name == theType {
 						for _, v1 := range v.Fields {
-							v1.MicroExpr = rightVal + "."
-							v1.LeftVal = rightVal + "[i]." + v1.MicroName + "="
-							r += "\n" + v1.LeftVal + gf.convert2MicroClient(v1, "v")
+							v1.VariableCall = rightVal + "[i]." + v1.Variable + "="
+							r += "\n" + v1.VariableCall + file.convertClientRequest(v1, "v")
 						}
 					}
 				}
@@ -260,7 +257,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 
 			}
 			sb.WriteString("}\n")
-			sb.WriteString(field.LeftVal + rightVal)
+			sb.WriteString(field.VariableCall + rightVal)
 
 			return sb.String()
 		} else {
@@ -284,13 +281,9 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 					r = "new(" + theType + ")\n"
 				}
 
-				for _, v := range gf.Structs {
+				for _, v := range file.Structs {
 					if v.Name == theType {
-						for _, v1 := range v.Fields {
-
-							v1.MicroExpr = field.MicroExpr + field.MicroName + "."
-							v1.LeftVal = field.MicroExpr + field.MicroName + "." + v1.MicroName + "="
-							r += "\n" + v1.LeftVal + gf.convert2MicroClient(v1, name)
+						for range v.Fields {
 
 						}
 					}
