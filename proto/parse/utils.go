@@ -8,7 +8,6 @@ import (
 
 var (
 	golangBaseType2ProtoBaseType = map[string]string{
-		"byte":    "byte",
 		"bool":    "bool",
 		"string":  "string",
 		"int":     "sint64",
@@ -40,13 +39,13 @@ var (
 		"error":       {},
 		"interface{}": {},
 	}
-	protoBaseType = map[string]struct{}{
-		"byte":   {},
-		"bool":   {},
-		"string": {},
-		"sint64": {},
-		"uint64": {},
-		"double": {},
+	protoBaseType = map[string]string{
+		"bool":   "bool",
+		"bytes":  "[]byte",
+		"string": "string",
+		"sint64": "int64",
+		"uint64": "uint64",
+		"double": "float64",
 	}
 )
 

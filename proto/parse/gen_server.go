@@ -292,7 +292,7 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				fieldName,
 			)
 		} else {
-			return fmt.Sprintf("proto.DecodeProtoValue2Interface(%s)", fieldName)
+			return fmt.Sprintf("proto.EncodeInterface2ProtoValue(%s)", fieldName)
 		}
 	default:
 		if isRepeated {
@@ -334,105 +334,24 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				}(),
 			)
 		} else {
-			build := strings.Builder{}
-			if strings.Contains(field.GoType, "*") {
-				build.WriteString(fmt.Sprintf(`func() *%s {
-						if %s != nil {
-							return %s
-						}
-						return nil
+			return fmt.Sprintf(`func() *%s {
+						return %s
 					}()`,
-					field.ProtoType,
-					fieldName,
-					func() string {
-						if field.IsRecursion {
-							GoType := strings.Replace(field.GoType, "[", "", -1)
-							GoType = strings.Replace(GoType, "]", "", -1)
-							GoType = strings.Replace(GoType, "*", "", -1)
-							index := strings.Index(GoType, ".")
-							if index != -1 {
-								GoType = GoType[index+1:]
-							}
-							return fmt.Sprintf("serverModel%s(%s)", GoType, fieldName)
-						} else {
-							str := strings.Builder{}
-							str.WriteString(fmt.Sprintf("&%s{\n", field.ProtoType))
-							for _, fileStruct := range file.Structs {
-								if fileStruct.Name == field.ProtoType {
-									for _, structField := range fileStruct.Fields {
-										str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, fieldName)))
-									}
-								}
-							}
-							str.WriteString("}\n")
-							return str.String()
-						}
-					}(),
-				))
-
-				return fmt.Sprintf(`func() *%s {
-						if %s != nil {
-							return %s
-						}
-						return nil
-					}()`,
-					field.ProtoType,
-					fieldName,
-					func() string {
-						if field.IsRecursion {
-							GoType := strings.Replace(field.GoType, "[", "", -1)
-							GoType = strings.Replace(GoType, "]", "", -1)
-							GoType = strings.Replace(GoType, "*", "", -1)
-							index := strings.Index(GoType, ".")
-							if index != -1 {
-								GoType = GoType[index+1:]
-							}
-							return fmt.Sprintf("serverModel%s(%s)", GoType, fieldName)
-						} else {
-							str := strings.Builder{}
-							str.WriteString(fmt.Sprintf("&%s{\n", field.ProtoType))
-							for _, fileStruct := range file.Structs {
-								if fileStruct.Name == field.ProtoType {
-									for _, structField := range fileStruct.Fields {
-										str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, fieldName)))
-									}
-								}
-							}
-							str.WriteString("}\n")
-							return str.String()
-						}
-					}(),
-				)
-			} /* else {
-				if field.IsRecursion {
-					GoType := strings.Replace(field.GoType, "[", "", -1)
-					GoType = strings.Replace(GoType, "]", "", -1)
-					GoType = strings.Replace(GoType, "*", "", -1)
-					index := strings.Index(GoType, ".")
-					if index != -1 {
-						GoType = GoType[index+1:]
-					}
-					return fmt.Sprintf("serverModel%s(val)", GoType)
-				} else {
+				field.ProtoType,
+				func() string {
 					str := strings.Builder{}
-					if strings.Contains(field.ProtoType, "map<") {
-						str.WriteString(fieldName + "\n")
-					} else {
-						str.WriteString(fmt.Sprintf("new(%s)\n", field.ProtoType))
-					}
-
+					str.WriteString(fmt.Sprintf("&%s{\n", field.ProtoType))
 					for _, fileStruct := range file.Structs {
 						if fileStruct.Name == field.ProtoType {
 							for _, structField := range fileStruct.Fields {
-								structField.MicroExpr = field.MicroExpr + field.Variable + "."
-								structField.VariableCall = field.MicroExpr + field.Variable + "." + structField.Variable + "="
-								r += "\n" + structField.VariableCall + file.convertServerResponse(structField, fieldName)
+								str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, fieldName)))
 							}
 						}
 					}
-					return r
-				}
-			}*/
+					str.WriteString("}\n")
+					return str.String()
+				}(),
+			)
 		}
 	}
 	return field.Name
