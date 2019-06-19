@@ -43,18 +43,18 @@ func (file *File) ParsePkgStruct(root *Package) {
 			log.Error(err) // load error
 			continue
 		}
-		files := program.Package(key).Files
+		astFiles := program.Package(key).Files
 		Root := Package{root: root}
 		Root.PkgPath = key
-		Root.Files = make([]File, 0, len(files))
-		for _, file := range files {
-			file := Root.ParseStruct(value, file)
-			if file == nil {
+		Root.Files = make([]File, 0, len(astFiles))
+		for _, astFile := range astFiles {
+			structFile := Root.ParseStruct(value, astFile)
+			if structFile == nil {
 				continue
 			}
-			file.PkgPath = Root.PkgPath
-			file.ParsePkgStruct(root)
-			Root.Files = append(Root.Files, *file)
+			structFile.PkgPath = Root.PkgPath
+			structFile.ParsePkgStruct(root)
+			Root.Files = append(Root.Files, *structFile)
 		}
 		if len(Root.Files) == 0 {
 			continue
@@ -165,22 +165,23 @@ func (file *File) parseType(golangType string) string {
 	}
 	if protoBaseType, ok := golangBaseType2ProtoBaseType[golangType]; ok {
 		builder.WriteString(protoBaseType)
-	}
-	if protoType, ok := golangType2ProtoType[golangType]; ok {
-		builder.WriteString(protoType)
 	} else {
-		if strings.HasPrefix(golangType, "map") {
-			if index := strings.Index(golangType, "]"); index != -1 {
-				builder.WriteString(fmt.Sprintf("map<%s, %s>", file.parseType(golangType[4:index]), file.parseType(golangType[index+1:])))
-			}
+		if protoType, ok := golangType2ProtoType[golangType]; ok {
+			builder.WriteString(protoType)
 		} else {
-			protoType = strings.TrimPrefix(golangType, "*")
-			if index := strings.LastIndex(protoType, "."); index != -1 {
-				builder.WriteString(protoType[index+1:])
+			if strings.HasPrefix(golangType, "map") {
+				if index := strings.Index(golangType, "]"); index != -1 {
+					builder.WriteString(fmt.Sprintf("map<%s, %s>", file.parseType(golangType[4:index]), file.parseType(golangType[index+1:])))
+				}
+			} else {
+				protoType = strings.TrimPrefix(golangType, "*")
+				if index := strings.LastIndex(protoType, "."); index != -1 {
+					builder.WriteString(protoType[index+1:])
+				}
 			}
-		}
-		if golangType != "context.Context" {
-			file.Message[protoType] = golangType
+			if golangType != "context.Context" {
+				file.Message[protoType] = golangType
+			}
 		}
 	}
 
