@@ -19,15 +19,15 @@ service {{.Name}} {
 {{end}}}
 {{range $funcsIndex, $func := .Funcs}}
 message {{.Name}}Req_ {
-{{range $paramsIndex, $param := .Params}}    {{.ProtoType}} {{.Name}} = {{$paramsIndex | index}};
+{{range $paramsIndex, $param := .Params}}    {{.ProtoType | unescaped}} {{.Name}} = {{$paramsIndex | index}};
 {{end}}}
 
 message {{$func.Name}}Resp_ {
-{{range $resultsIndex, $vresult:= .Results}}    {{.ProtoType}} {{.Name}} = {{$resultsIndex | index}};
+{{range $resultsIndex, $vresult:= .Results}}    {{.ProtoType | unescaped}} {{.Name}} = {{$resultsIndex | index}};
 {{end}}}
 {{end}}{{end}}{{range $structsIndex, $struct := .Structs}}
 message {{$struct.Name}} {
-{{range $fieldsIndex, $field := .Fields}}    {{.ProtoType}} {{.Name}} = {{$fieldsIndex | index}};
+{{range $fieldsIndex, $field := .Fields}}    {{.ProtoType | unescaped}} {{.Name}} = {{$fieldsIndex | index}};
 {{end}}}
 {{end}}
 `
@@ -38,6 +38,9 @@ func (file *File) GenProtoFile(wr io.Writer) {
 	temp.Funcs(template.FuncMap{
 		"index": func(i int) int {
 			return i + 1
+		},
+		"unescaped": func(x string) template.HTML {
+			return template.HTML(x)
 		},
 	})
 	protoTemplate, err := temp.Parse(ProtoTemplate)

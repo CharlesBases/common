@@ -7,20 +7,46 @@ import (
 )
 
 var (
-	// golang type 对应的proto3 type
-	protoMap = map[string]string{
-		"error":                  "google.protobuf.Struct",
-		"interface{}":            "google.protobuf.Value",
-		"map[string]interface{}": "google.protobuf.Struct",
-		"float64":                "double",
-		"float32":                "float",
-		"int":                    "int64",
-		"int8":                   "int32",
-		"int16":                  "int32",
-		"uint":                   "uint64",
-		"uint8":                  "uint32",
-		"uint16":                 "uint32",
-		"[]byte":                 "bytes",
+	golangBaseType2ProtoBaseType = map[string]string{
+		"byte":    "byte",
+		"bool":    "bool",
+		"string":  "string",
+		"int":     "sint64",
+		"int32":   "sint64",
+		"int64":   "sint64",
+		"uint":    "uint64",
+		"uint32":  "uint64",
+		"uint64":  "uint64",
+		"float32": "double",
+		"float64": "double",
+	}
+	golangType2ProtoType = map[string]string{
+		"error":       "google.protobuf.Value",
+		"interface{}": "google.protobuf.Value",
+	}
+	golangBaseType = map[string]struct{}{
+		"byte":    {},
+		"bool":    {},
+		"string":  {},
+		"int":     {},
+		"int32":   {},
+		"int64":   {},
+		"uint":    {},
+		"uint32":  {},
+		"uint64":  {},
+		"float32": {},
+		"float64": {},
+
+		"error":       {},
+		"interface{}": {},
+	}
+	protoBaseType = map[string]struct{}{
+		"byte":   {},
+		"bool":   {},
+		"string": {},
+		"sint64": {},
+		"uint64": {},
+		"double": {},
 	}
 )
 

@@ -80,12 +80,6 @@ func EncodeInterface2ProtoValue(interfaceParam interface{}) *_struct.Value {
 				NumberValue: float64(value),
 			},
 		}
-	case int8:
-		return &_struct.Value{
-			Kind: &_struct.Value_NumberValue{
-				NumberValue: float64(value),
-			},
-		}
 	case int32:
 		return &_struct.Value{
 			Kind: &_struct.Value_NumberValue{
@@ -99,12 +93,6 @@ func EncodeInterface2ProtoValue(interfaceParam interface{}) *_struct.Value {
 			},
 		}
 	case uint:
-		return &_struct.Value{
-			Kind: &_struct.Value_NumberValue{
-				NumberValue: float64(value),
-			},
-		}
-	case uint8:
 		return &_struct.Value{
 			Kind: &_struct.Value_NumberValue{
 				NumberValue: float64(value),
@@ -141,22 +129,9 @@ func EncodeInterface2ProtoValue(interfaceParam interface{}) *_struct.Value {
 			},
 		}
 	case error:
-		fields := make(map[string]*_struct.Value, 2)
-		fields["Code"] = &_struct.Value{
-			Kind: &_struct.Value_NumberValue{
-				NumberValue: -1,
-			},
-		}
-		fields["Err"] = &_struct.Value{
+		return &_struct.Value{
 			Kind: &_struct.Value_StringValue{
 				StringValue: value.Error(),
-			},
-		}
-		return &_struct.Value{
-			Kind: &_struct.Value_StructValue{
-				StructValue: &_struct.Struct{
-					Fields: fields,
-				},
 			},
 		}
 	default:
@@ -318,7 +293,6 @@ func toValue(v reflect.Value) *_struct.Value {
 			},
 		}
 	default:
-		// Last resort
 		return &_struct.Value{
 			Kind: &_struct.Value_StringValue{
 				StringValue: fmt.Sprint(v),

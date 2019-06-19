@@ -24,7 +24,7 @@ func (file *File) ParseFile(astFile *ast.File) {
 				return true
 			}
 			inter.Name = decl.Name.Name + "Func"
-			log.Info("find func:", inter.Name)
+			log.Info("find func: ", inter.Name)
 			funcType := decl.Type
 			fun := file.ParseFunc(decl.Name.Name, funcType)
 			inter.Funcs = []Func{fun}
@@ -37,7 +37,7 @@ func (file *File) ParseFile(astFile *ast.File) {
 			if !ok {
 				return true
 			}
-			log.Info("find interface:", inter.Name)
+			log.Info("find interface: ", inter.Name)
 			inter.Funcs = make([]Func, len(interfaceType.Methods.List))
 			for index, field := range interfaceType.Methods.List {
 				fun := file.ParseFunc(field.Names[0].Name, field.Type.(*ast.FuncType))
@@ -100,27 +100,24 @@ func (file *File) ParseStruct(name string, structType *ast.StructType) Struct {
 
 // 解析ast函数
 func (file *File) ParseFunc(name string, funcType *ast.FuncType) Func {
-	fun := Func{}
-	// 函数名
-	fun.Name = name
-	// 函数参数
+	fun := Func{
+		Name: name,
+	}
 
 	if funcType.Params != nil {
 		fun.Params = file.ParseField(funcType.Params.List)
 	}
-	// 函数返回值
 	if funcType.Results != nil {
 		fun.Results = file.ParseField(funcType.Results.List)
 	}
-	// 第一个参数是否是context
-	if len(fun.Params) >= 1 {
-		t := fun.Params[0].Package
-		if t == "context" || t == "golang.org/x/net/context" {
-			s := file.ImportB[t]
-			if fun.Params[0].GoType == s+".Context" {
+
+	for _, val := range fun.Params {
+		if val.Package == "context" || val.Package == "golang.org/x/net/context" {
+			if val.GoType == fmt.Sprintf("%s.Context", file.ImportB[val.Package]) {
 				fun.Params = fun.Params[1:]
 			}
 		}
+		break
 	}
 	return fun
 }
@@ -161,27 +158,30 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 		name = strings.Replace(name, "*", "", -1)
 
 		var variableType = name
-		var pkgSort string
+		var packageSort string
 		if strings.Contains(fieldType, ".") {
-			index := strings.Index(fieldType, name)
-			str := fieldType[0:index]
-			lastIndex := strings.Index(name, ".")
-			if lastIndex != -1 {
-				variableType = "#" + name[lastIndex:]
-				pkgSort = name[:lastIndex]
+			if indexA := strings.Index(fieldType, name); indexA != -1 {
+				prefix := fieldType[0:indexA]
+				if indexB := strings.Index(name, "."); indexB != -1 {
+					variableType = fmt.Sprintf("#%s", name[indexB:])
+					packageSort = name[:indexB]
+				}
+				variableType = prefix + variableType
 			}
-			variableType = str + variableType
 		}
-		imp, ok := file.ImportA[pkgSort]
-		if !ok || imp == "" {
-			imp = file.PkgPath
-		}
-		_, ok = goBaseType[name]
-		if ok {
-			imp = ""
-		}
+		importA := func() string {
+			if _, ok := golangBaseType[name]; ok {
+				return ""
+			} else {
+				if importA, ok := file.ImportA[packageSort]; ok {
+					return importA
+				} else {
+					return file.PkgPath
+				}
+			}
+		}()
 
-		if field.Names == nil || len(field.Names) == 0 {
+		if len(field.Names) == 0 {
 			var name string
 			name = strings.Replace(fieldType, "[", "", -1)
 			name = strings.Replace(name, "]", "", -1)
@@ -197,64 +197,27 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 				Variable:     fieldname,
 				VariableType: variableType,
 				GoType:       fieldType,
-				Package:      imp,
+				Package:      importA,
 				ProtoType:    protoType,
 			}
 			fields = append(fields, field)
 		} else {
-			for _, name := range field.Names {
-				fieldname := title(name.Name)
-				field := Field{
-					Name:         name.Name,
-					FieldName:    name.Name,
+			for _, value := range field.Names {
+				fieldname := title(value.Name)
+				fields = append(fields, Field{
+					Name:         value.Name,
+					FieldName:    value.Name,
 					Variable:     fieldname,
 					VariableType: variableType,
 					GoType:       fieldType,
-					Package:      imp,
+					Package:      importA,
 					ProtoType:    protoType,
-				}
-				fields = append(fields, field)
+				})
 			}
 		}
 	}
 	return fields
 }
-
-// 解析ast字段列表
-// func ParseFieleList(astField []*ast.Field) []Field {
-// 	fields := make([]Field, 0, len(astField))
-// 	for _, field := range astField {
-// 		fieldType := ParseExpr(field.Type)
-// 		if field.Names == nil || len(field.Names) == 0 {
-// 			var name string
-// 			name = strings.Replace(fieldType, "[", "", -1)
-// 			name = strings.Replace(name, "]", "", -1)
-// 			name = strings.Replace(name, "*", "", -1)
-// 			name = strings.Replace(name, ".", "", -1)
-// 			name = strings.Replace(name, "{", "", -1)
-// 			name = strings.Replace(name, "}", "", -1)
-// 			name += "0"
-// 			fieldname := title(name)
-// 			p := Field{
-// 				Name:      name,
-// 				FieldName: fieldname,
-// 				GoType:    fieldType,
-// 			}
-// 			fields = append(fields, p)
-// 		} else {
-// 			for _, name := range field.Names {
-// 				fieldname := title(name.Name)
-// 				p := Field{
-// 					Name:      name.Name,
-// 					FieldName: fieldname,
-// 					GoType:    fieldType,
-// 				}
-// 				fields = append(fields, p)
-// 			}
-// 		}
-// 	}
-// 	return fields
-// }
 
 func title(name string) string {
 	builder := strings.Builder{}

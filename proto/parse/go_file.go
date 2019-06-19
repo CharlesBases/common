@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"fmt"
 	"go/parser"
 	"strconv"
 	"strings"
@@ -8,47 +9,6 @@ import (
 	log "github.com/cihub/seelog"
 	"golang.org/x/tools/go/loader"
 )
-
-var protoBaseType = map[string]string{
-	"float":  "float32",
-	"double": "float64",
-	"bytes":  "[]byte",
-	"int32":  "int32",
-	"int64":  "int64",
-	"int8":   "int8",
-	"int16":  "int16",
-	"uint":   "uint",
-	"uint32": "uint32",
-	"uint64": "uint64",
-	"uint8":  "uint8",
-	"uint16": "uint16",
-	"byte":   "byte",
-	"bool":   "bool",
-	"string": "string",
-	"rune":   "rune",
-}
-
-var goBaseType = map[string]struct{}{
-	"float32":                {},
-	"float64":                {},
-	"int":                    {},
-	"int32":                  {},
-	"int64":                  {},
-	"int8":                   {},
-	"int16":                  {},
-	"uint":                   {},
-	"uint32":                 {},
-	"uint64":                 {},
-	"uint8":                  {},
-	"uint16":                 {},
-	"byte":                   {},
-	"bool":                   {},
-	"string":                 {},
-	"rune":                   {},
-	"interface{}":            {},
-	"map[string]interface{}": {},
-	"error":                  {},
-}
 
 type File struct {
 	Name          string
@@ -159,7 +119,7 @@ func (file *File) ParseStructMessage() {
 		imp := strings.TrimPrefix(val, "*")
 		index := strings.Index(imp, ".")
 		if index == -1 {
-			_, ok := goBaseType[val]
+			_, ok := golangBaseType2ProtoBaseType[val]
 			if !ok {
 				pkgpath := file.PkgPath
 				if structMessage[pkgpath] == nil {
@@ -190,41 +150,41 @@ func (file *File) ParseStructMessage() {
 	file.StructMessage = structMessage
 }
 
-func (file *File) parseType(dataType string) (protoType string) {
+func (file *File) parseType(golangType string) string {
 	if file.Message == nil {
 		file.Message = make(map[string]string, 0)
 	}
-	var prefix string
-	if !strings.HasPrefix(dataType, "[]byte") {
-		if strings.HasPrefix(dataType, "[]") {
-			prefix = "repeated "
-			dataType = strings.TrimPrefix(dataType, "[]")
+	builder := strings.Builder{}
+	if strings.HasPrefix(golangType, "[]") {
+		if strings.HasPrefix(golangType, "[]byte") {
+			return "bytes"
+		} else {
+			builder.WriteString("repeated ")
+			golangType = strings.TrimPrefix(golangType, "[]")
+		}
+	}
+	if protoBaseType, ok := golangBaseType2ProtoBaseType[golangType]; ok {
+		builder.WriteString(protoBaseType)
+	}
+	if protoType, ok := golangType2ProtoType[golangType]; ok {
+		builder.WriteString(protoType)
+	} else {
+		if strings.HasPrefix(golangType, "map") {
+			if index := strings.Index(golangType, "]"); index != -1 {
+				builder.WriteString(fmt.Sprintf("map<%s, %s>", file.parseType(golangType[4:index]), file.parseType(golangType[index+1:])))
+			}
+		} else {
+			protoType = strings.TrimPrefix(golangType, "*")
+			if index := strings.LastIndex(protoType, "."); index != -1 {
+				builder.WriteString(protoType[index+1:])
+			}
+		}
+		if golangType != "context.Context" {
+			file.Message[protoType] = golangType
 		}
 	}
 
-	if prefix == "" { // 不是数组
-		if strings.HasPrefix(dataType, "map") && dataType != "map[string]interface{}" {
-			vType1 := dataType[4:]
-			index := strings.LastIndex(vType1, "]")
-
-			key1 := vType1[:index]
-			value1 := vType1[index+1:]
-			return "map<" + file.parseType(key1) + ", " + file.parseType(value1) + "> "
-		}
-	}
-
-	protoType, ok := protoMap[dataType]
-	if !ok {
-		protoType = strings.TrimPrefix(dataType, "*")
-		lastIndex := strings.LastIndex(protoType, ".")
-		if lastIndex != -1 {
-			protoType = protoType[lastIndex+1:]
-		}
-		if protoType != "Context" && dataType != "context.Context" {
-			file.Message[protoType] = dataType
-		}
-	}
-	return prefix + protoType
+	return builder.String()
 }
 
 func (file *File) GoTypeConfig() {

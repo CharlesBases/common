@@ -98,7 +98,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 		name = expr + "." + field.FieldName
 	}
 
-	theType1, ok := protoBaseType[theType]
+	theType1, ok := golangBaseType2ProtoBaseType[theType]
 	if ok {
 		theType = theType1
 		if isRepeated {
