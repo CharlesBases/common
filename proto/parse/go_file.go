@@ -117,22 +117,7 @@ func (file *File) ParseStructMessage() {
 	structMessage := make(map[string][]Message, 0)
 	for key, val := range file.Message {
 		imp := strings.TrimPrefix(val, "*")
-		index := strings.Index(imp, ".")
-		if index == -1 {
-			_, ok := golangBaseType2ProtoBaseType[val]
-			if !ok {
-				pkgpath := file.PkgPath
-				if structMessage[pkgpath] == nil {
-					structMessage[pkgpath] = make([]Message, 0)
-				}
-				message := Message{
-					Name:     key,
-					ExprName: val,
-					FullName: pkgpath,
-				}
-				structMessage[pkgpath] = append(structMessage[pkgpath], message)
-			}
-		} else {
+		if index := strings.Index(imp, "."); index != -1 {
 			impPrefix := imp[:index]
 			imp, ok := file.ImportA[impPrefix]
 			if ok {
@@ -144,6 +129,20 @@ func (file *File) ParseStructMessage() {
 					ExprName: val,
 					FullName: imp,
 				})
+			}
+		} else {
+			_, ok := golangBaseType[val]
+			if !ok {
+				pkgpath := file.PkgPath
+				if structMessage[pkgpath] == nil {
+					structMessage[pkgpath] = make([]Message, 0)
+				}
+				message := Message{
+					Name:     key,
+					ExprName: val,
+					FullName: pkgpath,
+				}
+				structMessage[pkgpath] = append(structMessage[pkgpath], message)
 			}
 		}
 	}
