@@ -282,57 +282,17 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 	case "google.protobuf.Value":
 		if isRepeated {
 			return fmt.Sprintf(`func() []*_struct.Value {
-					list := make([]*_struct.Value, len(%s))
-					for key, val := range %s {
-						list[key] = proto.EncodeInterface2ProtoValue(val)
-					}
-					return list
-				}()`,
+						errors := make([]*_struct.Value, len(%s))
+						for key, val := range %s {
+							errors[key] = proto.EncodeInterface2ProtoValue(val)
+						}
+						return errors
+					}()`,
 				fieldName,
 				fieldName,
 			)
 		} else {
-			return "proto.EncodeInterface2ProtoValue(" + fieldName + ")"
-		}
-	case "google.protobuf.Struct":
-		if field.GoType == "[]map[string]interface{}" {
-			return fmt.Sprintf(`func() []*_struct.Struct {
-					list := make([]*_struct.Struct, len(%s))
-					for key, val := range %s {
-						list[key] = proto.EncodeMap2ProtoStruct(val)
-					}
-					return list
-				}()`,
-				fieldName,
-				fieldName,
-			)
-		} else if field.GoType == "[]error" {
-			return fmt.Sprintf(`func() []*_struct.Struct {
-					if %s != nil {
-						list := make([]*_struct.Struct, len(%s))
-						for key, val := range %s {
-							list[key] = proto.EncodeMap2ProtoStruct(map[string]interface{}{"err": val})
-						}
-						return list
-					}
-					return nil
-				}()`,
-				fieldName,
-				fieldName,
-				fieldName,
-			)
-		} else if field.GoType == "error" {
-			return fmt.Sprintf(`func() *_struct.Struct {
-					if %s != nil {
-						return proto.EncodeMap2ProtoStruct(map[string]interface{}{"err": %s})
-					}
-					return nil
-				}()`,
-				fieldName,
-				fieldName,
-			)
-		} else if field.GoType == "map[string]interface{}" {
-			return "proto.EncodeMap2ProtoStruct(" + fieldName + ")"
+			return fmt.Sprintf("proto.DecodeProtoValue2Interface(%s)", fieldName)
 		}
 	default:
 		if isRepeated {
