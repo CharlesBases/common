@@ -175,7 +175,8 @@ func (file *File) parseType(golangType string) string {
 			} else {
 				protoType = strings.TrimPrefix(golangType, "*")
 				if index := strings.LastIndex(protoType, "."); index != -1 {
-					builder.WriteString(protoType[index+1:])
+					protoType = protoType[index+1:]
+					builder.WriteString(protoType)
 				}
 			}
 			if golangType != "context.Context" {

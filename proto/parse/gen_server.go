@@ -135,54 +135,46 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 	}
 	switch field.ProtoType {
 	case "google.protobuf.Value":
-		if isRepeated {
+		if field.GoType == "[]error" {
+			return fmt.Sprintf(`func() []error {
+						errors := make([]error, len(%s))
+						for key, val := range %s {
+							errors[key] = fmt.Errorf("%s", val)
+						}
+						return errors
+					}()`,
+				field.VariableCall,
+				field.VariableCall,
+				"%v",
+			)
+		}
+		if field.GoType == "error" {
+			return fmt.Sprintf(`func() error {
+						if %s != nil {
+							return fmt.Errorf("%s", %s)
+						} else {
+							return nil
+						}
+					}()`,
+				field.VariableCall,
+				"%v",
+				field.VariableCall,
+			)
+		}
+		if field.GoType == "[]interface{}" {
 			return fmt.Sprintf(`func() []interface{} {
 					list := make([]interface{}, len(%s))
 					for key, val := range %s {
-						list[key] = proto.DecodeProtoStruct2Interface(val)
+						list[key] = proto.DecodeProtoValue2Interface(val)
 					}
 					return list
 				}()`,
 				field.VariableCall,
 				field.VariableCall,
 			)
-		} else {
-			return "proto.DecodeProtoStruct2Interface(" + field.VariableCall + ")"
 		}
-	case "google.protobuf.Struct":
-		if field.GoType == "error" {
-			return fmt.Sprintf(`func() *_struct.Struct {
-				if %s != nil {
-					return proto.EncodeMap2ProtoStruct(map[string]interface{}{"err": %s})
-				}
-				return nil
-			}()`,
-				field.VariableCall,
-			)
-		} else if field.GoType == "[]error" {
-			return fmt.Sprintf(`func() []*_struct.Value {
-					list := make([]*_struct.Value, len(%s))
-					for key, val := range %s {
-						list[key] = proto.EncodeInterface2ProtoValue(val)
-					}
-					return list
-				}()`,
-				field.VariableCall,
-				field.VariableCall,
-			)
-		} else if field.GoType == "map[string]interface{}" {
-			return "proto.DecodeProtoStruct2Map(" + field.VariableCall + ")"
-		} else if field.GoType == "[]map[string]interface{}" {
-			return fmt.Sprintf(`func() interface{} {
-					list := make(interface{}, len(%s))
-					for key, val := range %s {
-						list[key] = proto.DecodeProtoStruct2Map(val)
-					}
-					return list
-				}()`,
-				field.VariableCall,
-				field.VariableCall,
-			)
+		if field.GoType == "interface{}" {
+			return "proto.DecodeProtoValue2Interface(" + field.VariableCall + ")"
 		}
 	default:
 		if isRepeated {

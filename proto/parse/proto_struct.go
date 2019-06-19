@@ -17,12 +17,12 @@ func DecodeProtoStruct2Map(protoStruct *_struct.Struct) map[string]interface{} {
 	}
 	Map := map[string]interface{}{}
 	for key, val := range protoStruct.Fields {
-		Map[key] = DecodeProtoStruct2Interface(val)
+		Map[key] = DecodeProtoValue2Interface(val)
 	}
 	return Map
 }
 
-func DecodeProtoStruct2Interface(protoStruct *_struct.Value) interface{} {
+func DecodeProtoValue2Interface(protoStruct *_struct.Value) interface{} {
 	if protoStruct == nil {
 		return nil
 	}
@@ -40,7 +40,7 @@ func DecodeProtoStruct2Interface(protoStruct *_struct.Value) interface{} {
 	case *_struct.Value_ListValue:
 		Interface := make([]interface{}, len(kind.ListValue.Values))
 		for key, val := range kind.ListValue.Values {
-			Interface[key] = DecodeProtoStruct2Interface(val)
+			Interface[key] = DecodeProtoValue2Interface(val)
 		}
 		return Interface
 	default:
