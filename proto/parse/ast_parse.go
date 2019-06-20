@@ -238,10 +238,9 @@ func generateImport(key, val string) string {
 }
 
 func packageSort(Package string) string {
-	index := strings.LastIndex(Package, "/")
-	packageSort := Package
-	if index != -1 {
-		packageSort = Package[index+1:]
+	if index := strings.LastIndex(Package, "/"); index != -1 {
+		return Package[index+1:]
+	} else {
+		return Package
 	}
-	return packageSort
 }

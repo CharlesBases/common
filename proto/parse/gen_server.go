@@ -10,7 +10,7 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-const ServiceServerTemplate = `// this file is generated from {{.PkgPath}} {{$Package := .PkgPath|funcSort}}
+const ServiceServerTemplate = `// this file is generated from {{.PkgPath}} {{$Package := .PkgPath | funcSort}}
 package {{.Package}}
 
 import (
@@ -28,7 +28,7 @@ import (
 	_struct "github.com/golang/protobuf/ptypes/struct"
 )
 {{range $interfaceIndex, $interface := .Interfaces}}
-func New{{.Name}}Server({{.Name}} {{$Package}}.{{.Name}}) {{.Name}}Server {
+func New{{.Name}}Server_({{.Name}} {{$Package}}.{{.Name}}) {{.Name}}Server {
 	return &{{.Name}}ServerImpl{
 		{{.Name}}:{{.Name}},
 	}
@@ -37,7 +37,7 @@ func New{{.Name}}Server({{.Name}} {{$Package}}.{{.Name}}) {{.Name}}Server {
 type {{.Name}}ServerImpl struct {
 	{{.Name}} {{$Package}}.{{.Name}}
 }
-{{range $funcsIndex, $func := .Funcs}} {{$ParamsLen := .Params|len|funcReduce}} {{$ResultsLen := .Results|len|funcReduce}}
+{{range $funcsIndex, $func := .Funcs}} {{$ParamsLen := .Params | len | funcReduce}} {{$ResultsLen := .Results | len | funcReduce}}
 func ({{$interface.Name}} *{{$interface.Name}}ServerImpl) {{.Name}} (ctx context.Context, serviceRequest *{{.Name}}Req_, serviceResponse *{{.Name}}Resp_) (err_ error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -79,12 +79,6 @@ func (file *File) GenServer(wr io.Writer) {
 		},
 		"funcSort": func(Package string) string {
 			return filepath.Base(Package)
-		},
-		"service": func(n string) string {
-			if strings.HasSuffix(n, "Service") {
-				return n
-			}
-			return n + "Service"
 		},
 		"generateImport":        generateImport,
 		"convertServerRequest":  file.convertServerRequest,

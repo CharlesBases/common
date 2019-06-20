@@ -9,31 +9,35 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-const ServiceClientTemplate = `// this file is generated from {{.PkgPath}} {{$pkg := .PkgPath|pkgForSort}} {{$Package := .Package}}
+const ServiceClientTemplate = `// this file is generated from {{.PkgPath}} {{$pkg := .PkgPath | packageSort}} {{$Package := .Package}}
 package {{.Package}}
 import (
-	{{range $importIndex, $import := .ImportA}}{{funcImport $importIndex $import}}
+	{{range $importIndex, $import := .ImportA}}{{generateImport $importIndex $import}}
 	{{end}}
 
 	// _struct "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/grpc"
 )
 {{range $interfaceIndex, $interface := .Interfaces}}
-func New{{.Name}}Client({{.Name}}_ {{.Name | service}}) {{$pkg}}.{{.Name}} {
+func New{{.Name}}Client_({{.Name}} {{.Name}}Client, opts ...grpc.CallOption) {{$pkg}}.{{.Name}} {
 	return &{{.Name}}ClientImpl{
-		{{.Name}}: {{.Name}}_,
+		{{.Name}}:  {{.Name}},
+		opts:       opts,
 	}
 }
+
 type {{.Name}}ClientImpl struct {
-	{{.Name}} {{.Name | microName}}
+	{{.Name}}   {{.Name}}Client
+	opts        []grpc.CallOption
 }
-{{range $funcsIndex, $func := .Funcs}} {{$ParamsLen := .Params|len|funcReduce}} {{$ResultsLen := .Results|len|funcReduce}}
-func ({{$interface.Name}} *{{$interface.Name}}ClientImpl) {{.Name}}(ctx context.Context{{range $paramsIndex, $param := .Params}}{{.Name}} {{.GoType}} {{if ne $paramsIndex  $ParamsLen }},{{end}} {{end}}) ({{range $resultsIndex, $result := .Results}} {{.Name}} {{.GoType}}{{if ne $resultsIndex $ResultsLen }},{{end}} {{end}}) {
+{{range $funcsIndex, $func := .Funcs}} {{$ParamsLen := .Params | len | funcReduce}} {{$ResultsLen := .Results | len | funcReduce}}
+func ({{$interface.Name}} *{{$interface.Name}}ClientImpl) {{.Name}}(ctx context.Context, {{range $paramsIndex, $param := .Params}}{{.Name}} {{.GoType}} {{if ne $paramsIndex  $ParamsLen }},{{end}} {{end}}) ({{range $resultsIndex, $result := .Results}} {{.Name}} {{.GoType}}{{if ne $resultsIndex $ResultsLen }},{{end}} {{end}}) {
 	serviceRequest := &{{.Name}}Req_{
 		{{range $paramsIndex, $param := .Params}}
 	}
 	serviceRequest.{{.Variable}}={{convertClientRequest . ""}}
 	{{end}}
-	serviceResponse, serviceError := {{$interface.Name}}.{{$interface.Name}}_.{{.Name}}({{useContextParam $v}} serviceRequest,{{$interface.Name}}.opts...)
+	serviceResponse, serviceError := {{$interface.Name}}.{{$interface.Name}}_.{{.Name}}(ctx, serviceRequest, {{$interface.Name}}.opts...)
 	if serviceError != nil {
 		log.Error(serviceError)
 		panic(serviceError.Error())
@@ -66,6 +70,12 @@ func (file *File) GenClient(wr io.Writer) {
 		"funcReduce": func(i int) int {
 			return i - 1
 		},
+		"service": func(n string) string {
+			if strings.HasSuffix(n, "Service") {
+				return n
+			}
+			return n + "Service"
+		},
 		"packageSort":           packageSort,
 		"generateImport":        generateImport,
 		"convertClientRequest":  file.convertClientRequest,
@@ -89,13 +99,12 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 
 	isRepeated := strings.Contains(field.ProtoType, "repeated")
 	if isRepeated {
-		theType = strings.Replace(theType, "repeated", "", -1)
-		theType = strings.TrimSpace(theType)
+		field.ProtoType = strings.TrimPrefix(field.ProtoType, "repeated ")
 	}
 
-	name := field.Name
+	fieldName := field.Name
 	if expr != "" {
-		name = expr + "." + field.FieldName
+		fieldName = expr + "." + field.FieldName
 	}
 
 	theType1, ok := golangBaseType2ProtoBaseType[theType]
@@ -104,7 +113,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 		if isRepeated {
 			sb := strings.Builder{}
 
-			rightVal := strings.Replace(name, ".", "", -1)
+			rightVal := strings.Replace(fieldName, ".", "", -1)
 			rightVal = strings.Replace(rightVal, "[", "", -1)
 			rightVal = strings.Replace(rightVal, "]", "", -1)
 			rightVal = "_slice_" + rightVal
@@ -113,10 +122,10 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("make([]")
 			sb.WriteString(theType)
 			sb.WriteString(",len(")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("))\n")
 			sb.WriteString("for i, v := range ")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("{\n")
 			sb.WriteString(rightVal)
 			sb.WriteString("[i]=")
@@ -128,7 +137,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 
 			return sb.String()
 		} else {
-			return theType + "(" + name + ")"
+			return theType + "(" + fieldName + ")"
 		}
 	}
 	switch field.ProtoType {
@@ -136,7 +145,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 		if isRepeated {
 			sb := strings.Builder{}
 
-			rightVal := strings.Replace(name, ".", "", -1)
+			rightVal := strings.Replace(fieldName, ".", "", -1)
 			rightVal = strings.Replace(rightVal, "[", "", -1)
 			rightVal = strings.Replace(rightVal, "]", "", -1)
 			rightVal = "_slice_" + rightVal
@@ -144,10 +153,10 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 
 			sb.WriteString("make([]*structpb.Value")
 			sb.WriteString(",len(")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("))\n")
 			sb.WriteString("for i, v := range ")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("{\n")
 			sb.WriteString(rightVal)
 			sb.WriteString("[i]=")
@@ -158,17 +167,17 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 
 			return sb.String()
 		} else {
-			return "proto3.EncodeToValue(" + name + ")"
+			return "proto3.EncodeToValue(" + fieldName + ")"
 		}
 	case "google.protobuf.Struct":
 		if field.GoType == "[]map[string]interface{}" {
 			sb := strings.Builder{}
 			sb.WriteString("make([]*structpb.Struct")
 			sb.WriteString(",len(")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("))\n")
 			sb.WriteString("for i, v := range ")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("{\n")
 			sb.WriteString(field.Variable)
 			sb.WriteString("[i]=")
@@ -176,15 +185,15 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("}\n")
 			return sb.String()
 		} else if field.GoType == "map[string]interface{}" {
-			return "proto3.EncodeMapToStruct(" + name + ")"
+			return "proto3.EncodeMapToStruct(" + fieldName + ")"
 		} else if field.GoType == "[]error" {
 			sb := strings.Builder{}
 			sb.WriteString("make([]*structpb.Struct")
 			sb.WriteString(",len(")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("))\n")
 			sb.WriteString("for i, v := range ")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("{\n")
 			sb.WriteString(field.Variable)
 			sb.WriteString("[i]=")
@@ -194,10 +203,10 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 		} else if field.GoType == "error" {
 			sb := strings.Builder{}
 			sb.WriteString("nil\n if ")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("!=nil{\n")
 			sb.WriteString("if _weberror, _ok := ")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString(".(weberror.BaseWebError); _ok {\n")
 			sb.WriteString("_resp.")
 			sb.WriteString(field.FieldName)
@@ -205,7 +214,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("_resp.")
 			sb.WriteString(field.FieldName)
 			sb.WriteString("=proto3.EncodeMapToStruct(proto3.ConvertStructToMap(weberror.BaseWebError{Code:-1,Err:errors.New(")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString(".Error())}))\n}\n}\n")
 			return sb.String()
 		}
@@ -213,7 +222,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 		if isRepeated {
 			sb := strings.Builder{}
 
-			rightVal := strings.Replace(name, ".", "", -1)
+			rightVal := strings.Replace(fieldName, ".", "", -1)
 			rightVal = strings.Replace(rightVal, "[", "", -1)
 			rightVal = strings.Replace(rightVal, "]", "", -1)
 			rightVal = "_slice_" + rightVal
@@ -222,10 +231,10 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			sb.WriteString("make([]*")
 			sb.WriteString(theType)
 			sb.WriteString(",len(")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("))\n")
 			sb.WriteString("for i, v := range ")
-			sb.WriteString(name)
+			sb.WriteString(fieldName)
 			sb.WriteString("{\n")
 			sb.WriteString(rightVal)
 			sb.WriteString("[i]=")
@@ -276,7 +285,7 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 			} else {
 				r := ""
 				if strings.Contains(field.ProtoType, "map<") {
-					r = name + "\n"
+					r = fieldName + "\n"
 				} else {
 					r = "new(" + theType + ")\n"
 				}
@@ -296,6 +305,234 @@ func (file *File) convertClientRequest(field Field, expr string) string {
 	return field.Name
 }
 
-func (file *File) convertClientResponse() {
+func (file *File) convertClientResponse(field Field, expr string) string {
+	if field.VariableCall == "" {
+		field.VariableCall = field.Name
+	}
 
+	repeated := strings.Contains(field.ProtoType, "repeated")
+	if repeated {
+		field.ProtoType = strings.Replace(field.ProtoType, "repeated", "", -1)
+		field.ProtoType = strings.TrimSpace(field.ProtoType)
+	}
+
+	if expr != "" {
+		field.Variable = expr + "." + field.Variable
+	}
+
+	name := field.Name
+	if field.GoExpr != "" {
+		name = field.GoExpr + "." + field.FieldName
+	}
+
+	_, ok := protoBaseType[field.ProtoType]
+	if ok {
+		if repeated {
+			sb := strings.Builder{}
+
+			rightVal := strings.Replace(name, ".", "", -1)
+			rightVal = strings.Replace(rightVal, "[", "", -1)
+			rightVal = strings.Replace(rightVal, "]", "", -1)
+			rightVal = "_slice_" + rightVal
+			sb.WriteString("nil\n" + rightVal + ":=")
+
+			sb.WriteString("make(")
+			sb.WriteString(field.GoType)
+			sb.WriteString(",len(")
+			sb.WriteString(field.Variable)
+			sb.WriteString("))\n")
+			sb.WriteString("for i, v := range ")
+			sb.WriteString(field.Variable)
+			sb.WriteString("{\n")
+			sb.WriteString(rightVal)
+			sb.WriteString("[i]=")
+			sb.WriteString(field.ProtoType)
+			sb.WriteString("(v)\n")
+			sb.WriteString("}\n")
+
+			sb.WriteString(field.VariableCall + rightVal)
+
+			return sb.String()
+		} else {
+			return field.GoType + "(" + field.Variable + ")"
+		}
+	}
+	switch field.ProtoType {
+	case "google.protobuf.Value":
+		if repeated {
+			sb := strings.Builder{}
+
+			rightVal := strings.Replace(name, ".", "", -1)
+			rightVal = strings.Replace(rightVal, "[", "", -1)
+			rightVal = strings.Replace(rightVal, "]", "", -1)
+			rightVal = "_slice_" + rightVal
+			sb.WriteString("nil\n" + rightVal + ":=")
+
+			sb.WriteString("make([]interface{}")
+			sb.WriteString(",len(")
+			sb.WriteString(field.Variable)
+			sb.WriteString("))\n")
+			sb.WriteString("for i, v := range ")
+			sb.WriteString(field.Variable)
+			sb.WriteString("{\n")
+			sb.WriteString(rightVal)
+			sb.WriteString("[i]=")
+			sb.WriteString("proto3.DecodeValue(v)\n")
+			sb.WriteString("}\n")
+
+			sb.WriteString(field.VariableCall + rightVal)
+
+			return sb.String()
+		} else {
+			return "proto3.DecodeValue(" + field.Variable + ")"
+		}
+	case "google.protobuf.Struct":
+		if field.GoType == "[]map[string]interface{}" {
+			sb := strings.Builder{}
+			sb.WriteString("make([]map[string]interface{}")
+			sb.WriteString(",len(")
+			sb.WriteString(field.Variable)
+			sb.WriteString("))\n")
+			sb.WriteString("for i, v := range ")
+			sb.WriteString(field.Variable)
+			sb.WriteString("{\n")
+
+			sb.WriteString(name)
+			sb.WriteString("[i]=")
+			sb.WriteString("proto3.DecodeToMap(v)\n")
+			sb.WriteString("}\n")
+			return sb.String()
+		} else if field.GoType == "map[string]interface{}" {
+			return "proto3.DecodeToMap(" + field.Variable + ")"
+		} else if field.GoType == "[]error" {
+			sb := strings.Builder{}
+			sb.WriteString("make([]weberror.BaseWebError,0,len(")
+			sb.WriteString(field.Variable)
+			sb.WriteString("))\n")
+			sb.WriteString("for i, v := range ")
+			sb.WriteString(field.Variable)
+			sb.WriteString("{\n")
+			sb.WriteString("error__:=weberror.BaseWebError{} \n ")
+			sb.WriteString("proto3.ConvertMapToStruct(proto3.DecodeToMap(")
+			sb.WriteString(field.Variable)
+			sb.WriteString("),&error__)\n")
+			sb.WriteString("if error__.Code != 0 && error__.Err != nil {\n")
+			sb.WriteString(name)
+			sb.WriteString("=append(")
+			sb.WriteString(name)
+			sb.WriteString(" ,error__)\n")
+			sb.WriteString("}\n}\n")
+			return sb.String()
+		} else if field.GoType == "error" {
+			sb := strings.Builder{}
+			sb.WriteString("nil\n ")
+			sb.WriteString("error__:=weberror.BaseWebError{} \n ")
+			sb.WriteString("proto3.ConvertMapToStruct(proto3.DecodeToMap(")
+			sb.WriteString(field.Variable)
+			sb.WriteString("),&error__)\n")
+			sb.WriteString("if error__.Code != 0 && error__.Err != nil {\n")
+			sb.WriteString(field.Name)
+			sb.WriteString(" =error__\n")
+			sb.WriteString("}\n")
+			return sb.String()
+		}
+	default:
+		if repeated {
+			sb := strings.Builder{}
+
+			rightVal := strings.Replace(name, ".", "", -1)
+			rightVal = strings.Replace(rightVal, "[", "", -1)
+			rightVal = strings.Replace(rightVal, "]", "", -1)
+			rightVal = "_slice_" + rightVal
+			sb.WriteString("nil\n" + rightVal + ":=")
+
+			sb.WriteString("make(")
+			sb.WriteString(field.GoType)
+			sb.WriteString(",len(")
+			sb.WriteString(field.Variable)
+			sb.WriteString("))\n")
+			sb.WriteString("for i, v := range ")
+			sb.WriteString(field.Variable)
+			sb.WriteString("{\n")
+			sb.WriteString(rightVal)
+			sb.WriteString("[i]=")
+
+			if field.IsRecursion {
+				if field.VariableCall == field.Name+"=" {
+					field.VariableCall = "v0." + field.Name + "="
+				}
+
+				GoType := strings.Replace(field.GoType, "[", "", -1)
+				GoType = strings.Replace(GoType, "]", "", -1)
+				GoType = strings.Replace(GoType, "*", "", -1)
+				index := strings.Index(GoType, ".")
+				if index != -1 {
+					GoType = GoType[index+1:]
+				}
+				sb.WriteString("to" + GoType + "GoModelClient(v)")
+			} else {
+				ty := strings.TrimPrefix(field.GoType, "[]")
+				r := ty + "{}\n"
+				r = strings.Replace(r, "*", "&", 1)
+				for _, v := range file.Structs {
+					if v.Name == field.ProtoType {
+						for _, v1 := range v.Fields {
+
+							v1.GoExpr = rightVal
+							v1.VariableCall = rightVal + "[i]." + v1.FieldName + "="
+							r += "\n" + v1.VariableCall + file.convertClientResponse(v1, "v")
+
+						}
+					}
+				}
+				sb.WriteString(r)
+			}
+
+			sb.WriteString("}\n")
+
+			sb.WriteString(field.VariableCall + rightVal)
+
+			return sb.String()
+		} else {
+			sb := strings.Builder{}
+			if field.IsRecursion {
+				GoType := strings.Replace(field.GoType, "[", "", -1)
+				GoType = strings.Replace(GoType, "]", "", -1)
+				GoType = strings.Replace(GoType, "*", "", -1)
+				index := strings.Index(GoType, ".")
+				if index != -1 {
+					GoType = GoType[index+1:]
+				}
+				sb.WriteString(" to" + GoType + "GoModelClient(v)")
+			} else {
+
+				r := ""
+				if strings.Contains(field.GoType, "*") {
+					sb.WriteString("nil\n ")
+					r = name + "=" + field.GoType + "{}\n"
+				} else {
+					sb.WriteString(field.GoType + "{}\n")
+				}
+				sb.WriteString("if " + field.Variable + "!=nil{\n")
+				r = strings.Replace(r, "*", "&", 1)
+				//r := ""
+				for _, v := range file.Structs {
+					if v.Name == field.ProtoType {
+						for _, v1 := range v.Fields {
+							v1.GoExpr = name
+							v1.VariableCall = name + "." + v1.FieldName + "="
+							r += "\n" + v1.VariableCall + file.convertClientResponse(v1, field.Variable)
+
+						}
+					}
+				}
+				sb.WriteString(r)
+				sb.WriteString("}\n")
+			}
+
+			return sb.String()
+
+		}
+	}
+	return field.Name
 }
