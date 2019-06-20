@@ -35,7 +35,7 @@ func (file *File) ParsePkgStruct(root *Package) {
 	structMessage := file.StructMessage
 	packages := make([]Package, 0)
 	for key, value := range structMessage {
-		log.Info("parse structs in package:", key)
+		log.Info("parse structs in package: ", key)
 		conf := loader.Config{ParserMode: parser.ParseComments}
 		conf.Import(key)
 		program, err := conf.Load()

@@ -105,12 +105,7 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 	}
 	isRepeated := strings.Contains(field.ProtoType, "repeated")
 	if isRepeated {
-		field.ProtoType = strings.Replace(field.ProtoType, "repeated", "", -1)
-		field.ProtoType = strings.TrimSpace(field.ProtoType)
-	}
-	fieldName := field.Name
-	if field.GoExpr != "" {
-		fieldName = fmt.Sprintf("%s.%s", field.GoExpr, field.FieldName)
+		field.ProtoType = strings.TrimPrefix(field.ProtoType, "repeated ")
 	}
 	if expr != "" {
 		field.VariableCall = fmt.Sprintf("%s.%s", expr, field.Variable)
@@ -180,66 +175,49 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 		if isRepeated {
 			builder := strings.Builder{}
 
-			variable := strings.Replace(fieldName, ".", "", -1)
-			variable = strings.Replace(variable, "[", "", -1)
-			variable = strings.Replace(variable, "]", "", -1)
-			variable = "slice" + strings.Title(variable)
-
-			builder.WriteString(fmt.Sprintf("make(%s, 0)\n", field.GoType))
-			builder.WriteString(fmt.Sprintf("%s := make(%s,len(%s))\n", field.GoType, field.VariableCall))
-			builder.WriteString(fmt.Sprintf("for key, val := range %s {\n", field.VariableCall))
-			builder.WriteString(fmt.Sprintf("%s[key] = %s\n}\n", variable,
+			builder.WriteString(fmt.Sprintf(`func() %s {
+					list := make(%s, len(%s))
+					for key, val := range %s {
+						list[key] = %s{
+							%s
+						}
+					}
+					return list
+				}()`,
+				field.GoType,
+				field.GoType,
+				field.VariableCall,
+				field.VariableCall,
+				strings.TrimPrefix(field.GoType, "[]"),
 				func() string {
-					str := strings.Replace(fmt.Sprintf("%s{}\n", strings.TrimPrefix(field.GoType, "[]")), "*", "&", 1)
+					str := strings.Builder{}
 					for _, fileStruct := range file.Structs {
 						if fileStruct.Name == field.ProtoType {
 							for _, structField := range fileStruct.Fields {
-								if structField.IsRecursion {
-									GoType := strings.Replace(field.GoType, "[", "", -1)
-									GoType = strings.Replace(GoType, "]", "", -1)
-									GoType = strings.Replace(GoType, "*", "", -1)
-									index := strings.Index(GoType, ".")
-									if index != -1 {
-										GoType = GoType[index+1:]
-									}
-									structField.Variable = variable + "[i]." + structField.FieldName + "="
-									str += "\n" + structField.Variable + "to" + GoType + "GoModelServer(fileStruct)"
-								} else {
-									structField.GoExpr = fieldName
-									structField.Variable = variable + "[i]." + structField.FieldName + "="
-									str += "\n" + structField.Variable + file.convertServerRequest(structField, "fileStruct")
-								}
+								str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerRequest(structField, "val")))
 							}
 						}
 					}
-					return str
-				}()))
-			builder.WriteString(fmt.Sprintf("%s = %s", field.Variable, variable))
+					return str.String()
+				}(),
+			))
 
 			return builder.String()
 		} else {
-			variableValue := strings.Builder{}
-			variableValue.WriteString(strings.Replace(fmt.Sprintf("%s{\n", field.GoType), "*", "&", 1))
+			builder := strings.Builder{}
+
+			goType := strings.Replace(field.GoType, "*", "&", 1)
+
+			builder.WriteString(fmt.Sprintf("%s{\n", goType))
 			for _, fileStruct := range file.Structs {
 				if fileStruct.Name == field.ProtoType {
 					for _, structField := range fileStruct.Fields {
-						if structField.IsRecursion {
-							GoType := strings.Replace(field.GoType, "[", "", -1)
-							GoType = strings.Replace(GoType, "]", "", -1)
-							GoType = strings.Replace(GoType, "*", "", -1)
-							index := strings.Index(GoType, ".")
-							if index != -1 {
-								GoType = GoType[index+1:]
-							}
-							variableValue.WriteString(fmt.Sprintf("%s: to%sGoModelServer(val),\n", structField.FieldName, GoType))
-						} else {
-							variableValue.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerRequest(structField, field.VariableCall)))
-						}
+						builder.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerRequest(structField, field.VariableCall)))
 					}
 				}
 			}
-			variableValue.WriteString("}\n")
-			return variableValue.String()
+			builder.WriteString("}\n")
+			return builder.String()
 		}
 	}
 	return field.Name
@@ -311,36 +289,27 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				fieldName,
 				field.ProtoType,
 				func() string {
-					if field.IsRecursion {
-						GoType := strings.Replace(field.GoType, "[", "", -1)
-						GoType = strings.Replace(GoType, "]", "", -1)
-						GoType = strings.Replace(GoType, "*", "", -1)
-						index := strings.Index(GoType, ".")
-						if index != -1 {
-							GoType = GoType[index+1:]
-						}
-						return fmt.Sprintf("serverModel$s(val)", GoType)
-					} else {
-						str := strings.Builder{}
-						for _, fileStruct := range file.Structs {
-							if fileStruct.Name == field.ProtoType {
-								for _, structField := range fileStruct.Fields {
-									str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, "val")))
-								}
+					str := strings.Builder{}
+					for _, fileStruct := range file.Structs {
+						if fileStruct.Name == field.ProtoType {
+							for _, structField := range fileStruct.Fields {
+								str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, "val")))
 							}
 						}
-						return str.String()
 					}
+					return str.String()
 				}(),
 			)
 		} else {
 			return fmt.Sprintf(`func() *%s {
-						return %s
+						return &%s{
+							%s
+						}
 					}()`,
+				field.ProtoType,
 				field.ProtoType,
 				func() string {
 					str := strings.Builder{}
-					str.WriteString(fmt.Sprintf("&%s{\n", field.ProtoType))
 					for _, fileStruct := range file.Structs {
 						if fileStruct.Name == field.ProtoType {
 							for _, structField := range fileStruct.Fields {
@@ -348,7 +317,6 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 							}
 						}
 					}
-					str.WriteString("}\n")
 					return str.String()
 				}(),
 			)

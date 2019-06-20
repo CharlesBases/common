@@ -12,9 +12,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/CharlesBases/common/proto/parse"
 	log "github.com/cihub/seelog"
 	"golang.org/x/tools/imports"
+
+	"github.com/CharlesBases/common/proto/parse"
 )
 
 var (
@@ -77,9 +78,13 @@ func main() {
 	gofile := parse.NewFile(*protoPackage, func() string {
 		list := filepath.SplitList(os.Getenv("GOPATH"))
 		packagePath := filepath.Dir(*goFile)
+		absPath, _ := filepath.Abs(".")
 		for i := range list {
 			if strings.Contains(packagePath, list[i]) {
 				return packagePath[len(list[i])+5:]
+			}
+			if strings.Contains(absPath, list[i]) {
+				return absPath[len(list[i])+5:]
 			}
 		}
 		return ""
