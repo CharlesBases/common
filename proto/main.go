@@ -135,23 +135,23 @@ func main() {
 	serfile.Write(byteSlice)
 
 	// generate client file
-	// clifile, err := createFile(cliFile)
-	// if err != nil {
-	// 	log.Error(err)
-	// 	return
-	// }
-	// defer clifile.Close()
-	// bufferCli := bytes.NewBuffer([]byte{})
-	// gofile.GenClient(bufferCli)
-	// clifile.Write(bufferCli.Bytes())
-	// byteSlice, e := imports.Process("", bufferCli.Bytes(), nil)
-	// if e != nil {
-	// 	log.Error(e)
-	// 	return
-	// }
-	// clifile.Truncate(0)
-	// clifile.Seek(0, 0)
-	// clifile.Write(byteSlice)
+	clifile, err := createFile(cliFile)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	defer clifile.Close()
+	bufferCli := bytes.NewBuffer([]byte{})
+	gofile.GenClient(bufferCli)
+	clifile.Write(bufferCli.Bytes())
+	byteSlice, e := imports.Process("", bufferCli.Bytes(), nil)
+	if e != nil {
+		log.Error(e)
+		return
+	}
+	clifile.Truncate(0)
+	clifile.Seek(0, 0)
+	clifile.Write(byteSlice)
 
 	log.Info("complete!")
 }
