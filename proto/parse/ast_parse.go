@@ -135,8 +135,7 @@ func ParseExpr(expr ast.Expr) (fieldType string) {
 		arrayType := expr.(*ast.ArrayType)
 		return "[]" + ParseExpr(arrayType.Elt)
 	case *ast.MapType:
-		mapType := expr.(*ast.MapType)
-		return "map[" + ParseExpr(mapType.Key) + "]" + ParseExpr(mapType.Value)
+		return "map[string]interface{}"
 	case *ast.InterfaceType:
 		return "interface{}"
 	case *ast.Ident:
@@ -154,8 +153,7 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 		fieldType := ParseExpr(field.Type)
 		protoType := file.parseType(fieldType)
 
-		name := strings.Replace(fieldType, "[]", "", -1)
-		name = strings.Replace(name, "*", "", -1)
+		name := strings.TrimPrefix(strings.TrimPrefix(fieldType, "[]"), "*")
 
 		var variableType = name
 		var packageSort string

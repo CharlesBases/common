@@ -180,7 +180,7 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 				field.GoType,
 				field.VariableCall,
 				field.VariableCall,
-				strings.TrimPrefix(field.GoType, "[]"),
+				strings.Replace(strings.TrimPrefix(field.GoType, "[]"), "*", "&", 1),
 				func() string {
 					str := strings.Builder{}
 					for _, fileStruct := range file.Structs {
