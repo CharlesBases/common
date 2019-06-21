@@ -39,13 +39,15 @@ var (
 		"error":       {},
 		"interface{}": {},
 	}
-	protoBaseType = map[string]string{
+	protoType2RPCType = map[string]string{
 		"bool":   "bool",
 		"bytes":  "[]byte",
 		"string": "string",
 		"sint64": "int64",
 		"uint64": "uint64",
 		"double": "float64",
+		// "google.protobuf.Value":  "*_struct.Value",
+		// "google.protobuf.Struct": "*_struct.Struct",
 	}
 )
 
@@ -107,7 +109,6 @@ type Field struct {
 	Variable     string // 被赋值变量
 	VariableType string // 变量类型
 	VariableCall string // 变量调用名
-	IsRecursion  bool   // 递归应用类型
 }
 
 func (root *Package) ParseStruct(message []Message, astFile *ast.File) *File {

@@ -1,7 +1,6 @@
 package parse
 
 import (
-	"fmt"
 	"go/parser"
 	"strconv"
 	"strings"
@@ -92,13 +91,10 @@ func (file *File) ParsePkgStruct(root *Package) {
 	}
 
 	for structKey, structValue := range file.Structs {
-		for fieldKey, fieldValue := range structValue.Fields {
-			goType := strings.Replace(fieldValue.GoType, "[", "", -1)
-			goType = strings.Replace(goType, "]", "", -1)
-			goType = strings.Replace(goType, "*", "", -1)
+		for _, fieldValue := range structValue.Fields {
+			goType := strings.Replace(strings.Replace(fieldValue.GoType, "[]", "", 1), "*", "", -1)
 			if structValue.Name == goType {
 				file.Structs[structKey].IsRecursion = true
-				file.Structs[structKey].Fields[fieldKey].IsRecursion = true
 			}
 		}
 	}
@@ -162,15 +158,15 @@ func (file *File) parseType(golangType string) string {
 			golangType = strings.TrimPrefix(golangType, "[]")
 		}
 	}
-	if protoBaseType, ok := golangBaseType2ProtoBaseType[golangType]; ok {
-		builder.WriteString(protoBaseType)
+	if protoType2RPCType, ok := golangBaseType2ProtoBaseType[golangType]; ok {
+		builder.WriteString(protoType2RPCType)
 	} else {
 		if protoType, ok := golangType2ProtoType[golangType]; ok {
 			builder.WriteString(protoType)
 		} else {
 			if strings.HasPrefix(golangType, "map") {
 				if index := strings.Index(golangType, "]"); index != -1 {
-					builder.WriteString(fmt.Sprintf("map<%s, %s>", file.parseType(golangType[4:index]), file.parseType(golangType[index+1:])))
+					builder.WriteString("map<string, google.protobuf.Value>")
 				}
 			} else {
 				protoType = strings.TrimPrefix(golangType, "*")

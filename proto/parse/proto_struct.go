@@ -1,12 +1,10 @@
 package parse
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 
-	log "github.com/cihub/seelog"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	// _struct "github.com/gogo/protobuf/types"
 )
@@ -137,45 +135,6 @@ func EncodeInterface2ProtoValue(interfaceParam interface{}) *_struct.Value {
 	default:
 		return toValue(reflect.ValueOf(value))
 	}
-}
-
-// ConvertMapToStruct converts a map[string]interface{} to a struct
-func ConvertMap2Struct(v map[string]interface{}, p interface{}) (ok bool) {
-	if v == nil {
-		return false
-	}
-	log.Debug(v)
-	bytes, err := json.Marshal(v)
-	if err != nil {
-		log.Error(err)
-		return false
-	}
-	err = json.Unmarshal(bytes, p)
-	if err != nil {
-		log.Error(err)
-		return false
-	}
-	log.Debug(p)
-	return true
-}
-
-// ConvertStructToMap converts a struct to a map[string]interface{}
-func ConvertStruct2Map(obj interface{}) map[string]interface{} {
-	if obj == nil {
-		return nil
-	}
-	var data = make(map[string]interface{})
-	bytes, err := json.Marshal(obj)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	err = json.Unmarshal(bytes, &data)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	return data
 }
 
 func toValue(v reflect.Value) *_struct.Value {

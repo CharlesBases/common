@@ -104,7 +104,7 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 	if expr != "" {
 		field.VariableCall = fmt.Sprintf("%s.%s", expr, field.Variable)
 	}
-	if _, ok := protoBaseType[field.ProtoType]; ok {
+	if _, ok := protoType2RPCType[field.ProtoType]; ok {
 		if isRepeated {
 			return fmt.Sprintf(`func() %s {
 					list := make(%s, len(%s))
@@ -167,9 +167,7 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 		}
 	default:
 		if isRepeated {
-			builder := strings.Builder{}
-
-			builder.WriteString(fmt.Sprintf(`func() %s {
+			return fmt.Sprintf(`func() %s {
 					list := make(%s, len(%s))
 					for key, val := range %s {
 						list[key] = %s{
@@ -194,24 +192,36 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 					}
 					return str.String()
 				}(),
-			))
-
-			return builder.String()
+			)
 		} else {
-			builder := strings.Builder{}
-
-			goType := strings.Replace(field.GoType, "*", "&", 1)
-
-			builder.WriteString(fmt.Sprintf("%s{\n", goType))
-			for _, fileStruct := range file.Structs {
-				if fileStruct.Name == field.ProtoType {
-					for _, structField := range fileStruct.Fields {
-						builder.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerRequest(structField, field.VariableCall)))
-					}
-				}
+			if field.GoType == "map[string]interface{}" {
+				return fmt.Sprintf(`func() map[string]interface{} {
+						param := make(map[string]interface{}, len(%s))
+						for key, val := range %s {
+							param[key] = proto.DecodeProtoValue2Interface(val)
+						}
+						return param
+					}()`,
+					field.VariableCall,
+					field.VariableCall,
+				)
+			} else {
+				return fmt.Sprintf(`%s{
+						%s
+					}`,
+					strings.Replace(field.GoType, "*", "&", 1),
+					func() string {
+						str := strings.Builder{}
+						for _, fileStruct := range file.Structs {
+							if fileStruct.Name == field.ProtoType {
+								for _, structField := range fileStruct.Fields {
+									str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerRequest(structField, field.VariableCall)))
+								}
+							}
+						}
+						return str.String()
+					}())
 			}
-			builder.WriteString("}\n")
-			return builder.String()
 		}
 	}
 	return field.Name
@@ -223,15 +233,14 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 	}
 	isRepeated := strings.Contains(field.ProtoType, "repeated")
 	if isRepeated {
-		field.ProtoType = strings.Replace(field.ProtoType, "repeated", "", -1)
-		field.ProtoType = strings.TrimSpace(field.ProtoType)
+		field.ProtoType = strings.TrimPrefix(field.ProtoType, "repeated ")
 	}
 	fieldName := field.Name
 	if expr != "" {
 		fieldName = expr + "." + field.FieldName
 	}
 
-	protoType, ok := protoBaseType[field.ProtoType]
+	protoType, ok := protoType2RPCType[field.ProtoType]
 	if ok {
 		if isRepeated {
 			return fmt.Sprintf(`func() []%s {
@@ -264,7 +273,16 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				fieldName,
 			)
 		} else {
-			return fmt.Sprintf("proto.EncodeInterface2ProtoValue(%s)", fieldName)
+			return fmt.Sprintf(`func() *_struct.Value {
+					if  %s != nil {
+						return proto.EncodeInterface2ProtoValue(%s)
+					} else {
+						return nil
+					}
+				}()`,
+				fieldName,
+				fieldName,
+			)
 		}
 	default:
 		if isRepeated {
@@ -295,25 +313,39 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 				}(),
 			)
 		} else {
-			return fmt.Sprintf(`func() *%s {
+			if field.GoType == "map[string]interface{}" {
+				return fmt.Sprintf(`func() map[string]*_struct.Value {
+						param := make(map[string]*_struct.Value, len(%s))
+						for key, val := range %s {
+							param[key] = proto.EncodeInterface2ProtoValue(val)
+						}
+						return param
+					}()`,
+					fieldName,
+					fieldName,
+				)
+			} else {
+				return fmt.Sprintf(`func() *%s {
 						return &%s{
 							%s
 						}
 					}()`,
-				field.ProtoType,
-				field.ProtoType,
-				func() string {
-					str := strings.Builder{}
-					for _, fileStruct := range file.Structs {
-						if fileStruct.Name == field.ProtoType {
-							for _, structField := range fileStruct.Fields {
-								str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, fieldName)))
+					field.ProtoType,
+					field.ProtoType,
+					func() string {
+						str := strings.Builder{}
+						for _, fileStruct := range file.Structs {
+							if fileStruct.Name == field.ProtoType {
+								for _, structField := range fileStruct.Fields {
+									str.WriteString(fmt.Sprintf("%s: %s,\n", structField.FieldName, file.convertServerResponse(structField, fieldName)))
+								}
 							}
 						}
-					}
-					return str.String()
-				}(),
-			)
+						return str.String()
+					}(),
+				)
+			}
+
 		}
 	}
 	return field.Name

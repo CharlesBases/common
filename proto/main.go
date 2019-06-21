@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"go/parser"
 	"go/token"
 	"os"
@@ -21,13 +22,13 @@ import (
 var (
 	goFile       = flag.String("file", "/Users/sun/go/SourceCode/src/github.com/CharlesBases/common/proto/A/bll.go", "full path of the file")
 	generatePath = flag.String("path", "./pb/", "full path of the generate folder")
-	protoPackage = flag.String("package", "", "package name in .proto file")
+	protoPackage = flag.String("package", "auto", "package name in .proto file")
 )
 
 var (
-	serFile = "pb.server.go"
-	cliFile = "pb.client.go"
-	proFile = "pb.proto"
+	serFile = "server.go"
+	cliFile = "client.go"
+	proFile = "proto"
 )
 
 func init() {
@@ -62,9 +63,9 @@ func main() {
 		*protoPackage = filepath.Base(*generatePath)
 	}
 
-	serFile = path.Join(*generatePath, serFile)
-	cliFile = path.Join(*generatePath, cliFile)
-	proFile = path.Join(*generatePath, proFile)
+	serFile = path.Join(*generatePath, fmt.Sprintf("%s.%s", *protoPackage, serFile))
+	cliFile = path.Join(*generatePath, fmt.Sprintf("%s.%s", *protoPackage, cliFile))
+	proFile = path.Join(*generatePath, fmt.Sprintf("%s.%s", *protoPackage, proFile))
 
 	os.MkdirAll(*generatePath, 0755)
 
