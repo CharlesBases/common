@@ -20,11 +20,6 @@ func Decode(structPointer interface{}) map[string]interface{} {
 	return mapParameter
 }
 
-func Encode_2(mapParameter interface{}, structPointer interface{}) {
-	mapV := reflect.ValueOf(mapParameter)
-	fmt.Println(mapV.Kind())
-}
-
 // map to struct
 func Encode(mapParameter interface{}, structPointer interface{}) {
 	mapV := reflect.Indirect(reflect.ValueOf(mapParameter))
