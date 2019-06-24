@@ -297,6 +297,7 @@ func (file *File) convertClientResponse(field Field, expr string) string {
 		}
 	default:
 		if repeated {
+			field.GoType = file.parseGolangStructType(field)
 			return fmt.Sprintf(`func() %s {
 					list := make(%s, len(%s))
 					for key, val := range %s {

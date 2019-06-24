@@ -105,7 +105,6 @@ type Field struct {
 	ProtoType    string // proto类型
 	GoExpr       string // go类型的引用前缀
 	Package      string // go类型定义的所在包
-	IsField      bool   // struct中的字段
 	Variable     string // 被赋值变量
 	VariableType string // 变量类型
 	VariableCall string // 变量调用名
@@ -167,40 +166,4 @@ func (root *Package) ParseStruct(message []Message, astFile *ast.File) *File {
 	})
 	file.Structs = structs
 	return &file
-}
-
-//把gofiles 汇总到 一个gofile
-func (root *Package) Summary() File {
-	log.Info("SummaryGofiles...")
-	if len(root.Files) == 0 {
-		return File{}
-	}
-	var file = root.Files[0]
-
-	if len(root.Files) > 1 {
-		for key, val := range root.Files[1:] {
-			if key == 0 {
-				continue
-			}
-			file.Structs = append(file.Structs, val.Structs...)
-			file.Interfaces = append(file.Interfaces, val.Interfaces...)
-			// var i int
-			// for imp, quote := range val.Imports {
-			// 	_, ok1 := file.PkgImports[quote]
-			// 	if !ok1 { // 未导入包
-			// 		_, ok2 := file.ImportPkgs[imp]
-			// 		if ok2 { //包名会冲突
-			// 			kk := imp + strconv.Itoa(i)
-			// 			file.ImportPkgs[kk] = quote
-			// 			file.PkgImports[quote] = kk
-			// 			i++
-			// 		} else { // 包名不会冲突
-			// 			file.ImportPkgs[imp] = quote
-			// 			file.PkgImports[quote] = imp
-			// 		}
-			// 	}
-			// }
-		}
-	}
-	return file
 }

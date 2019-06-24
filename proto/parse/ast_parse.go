@@ -89,7 +89,6 @@ func (file *File) ParseStruct(name string, structType *ast.StructType) Struct {
 	fields := file.ParseField(structType.Fields.List)
 	for _, field := range fields {
 		if strings.Title(field.Name) == field.Name {
-			field.IsField = true
 			s.Fields = append(s.Fields, field)
 		}
 	}
@@ -160,9 +159,10 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 
 			if index := strings.Index(name, "."); index != -1 {
 				packageSort = name[:index]
-				variableType = fmt.Sprintf("#%s", name[index:])
+				variableType = fmt.Sprintf("%s&%s", prefix, name[index:])
+			} else {
+				variableType = fmt.Sprintf("%s%s", prefix, name)
 			}
-			variableType = fmt.Sprintf("%s%s", prefix, variableType)
 
 			if _, ok := golangBaseType[name]; !ok {
 				if importA, ok := file.ImportA[packageSort]; ok {

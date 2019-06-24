@@ -167,6 +167,7 @@ func (file *File) convertServerRequest(field Field, expr string) string {
 		}
 	default:
 		if isRepeated {
+			field.GoType = file.parseGolangStructType(field)
 			return fmt.Sprintf(`func() %s {
 					list := make(%s, len(%s))
 					for key, val := range %s {
@@ -349,4 +350,17 @@ func (file *File) convertServerResponse(field Field, expr string) string {
 		}
 	}
 	return field.Name
+}
+
+func (file *File) parseGolangStructType(field Field) string {
+	if strings.Contains(field.GoType, ".") {
+		return field.GoType
+	}
+	for _, val := range file.Structs {
+		if val.Name == field.ProtoType {
+			prefix := field.GoType[0:strings.Index(field.GoType, strings.TrimPrefix(strings.TrimPrefix(field.GoType, "[]"), "*"))]
+			return fmt.Sprintf("%s%s.%s", prefix, filepath.Base(val.Pkg), field.ProtoType)
+		}
+	}
+	return field.GoType
 }
