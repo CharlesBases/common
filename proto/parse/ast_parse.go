@@ -160,10 +160,9 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 
 			if index := strings.Index(name, "."); index != -1 {
 				packageSort = name[:index]
-				variableType = fmt.Sprintf("%s#%s", prefix, name[index:])
-			} else {
-				variableType = fmt.Sprintf("#%s", name)
+				variableType = fmt.Sprintf("#%s", name[index:])
 			}
+			variableType = fmt.Sprintf("%s%s", prefix, variableType)
 
 			if _, ok := golangBaseType[name]; !ok {
 				if importA, ok := file.ImportA[packageSort]; ok {
@@ -175,34 +174,16 @@ func (file *File) ParseField(astField []*ast.Field) []Field {
 			return
 		}()
 
-		if len(field.Names) == 0 {
-			var name string
-			name = strings.Replace(fieldType, "[]", "", -1)
-			name = strings.Replace(name, "*", "", -1)
-			name = strings.Replace(name, ".", "", -1)
-			name = strings.Replace(name, "{}", "", -1)
-			fieldName := title(name)
+		for _, value := range field.Names {
+			fieldName := title(value.Name)
 			fields[key] = Field{
-				Name:         name,
-				FieldName:    fieldName,
+				Name:         value.Name,
+				FieldName:    value.Name,
 				Variable:     fieldName,
 				VariableType: variableType,
 				GoType:       fieldType,
 				Package:      packageImport,
 				ProtoType:    protoType,
-			}
-		} else {
-			for _, value := range field.Names {
-				fieldName := title(value.Name)
-				fields[key] = Field{
-					Name:         value.Name,
-					FieldName:    value.Name,
-					Variable:     fieldName,
-					VariableType: variableType,
-					GoType:       fieldType,
-					Package:      packageImport,
-					ProtoType:    protoType,
-				}
 			}
 		}
 	}
