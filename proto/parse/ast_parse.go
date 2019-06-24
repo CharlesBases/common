@@ -148,69 +148,61 @@ func ParseExpr(expr ast.Expr) (fieldType string) {
 
 // 解析ast字段列表
 func (file *File) ParseField(astField []*ast.Field) []Field {
-	fields := make([]Field, 0, len(astField))
-	for _, field := range astField {
+	fields := make([]Field, len(astField))
+	for key, field := range astField {
 		fieldType := ParseExpr(field.Type)
 		protoType := file.parseType(fieldType)
 
-		name := strings.TrimPrefix(strings.TrimPrefix(fieldType, "[]"), "*")
+		variableType, packageImport := func() (variableType string, packageImport string) {
+			name := strings.TrimPrefix(strings.TrimPrefix(fieldType, "[]"), "*")
+			prefix := fieldType[:strings.Index(fieldType, name)]
+			packageSort := ""
 
-		var variableType = name
-		var packageSort string
-		if strings.Contains(fieldType, ".") {
-			if indexA := strings.Index(fieldType, name); indexA != -1 {
-				prefix := fieldType[0:indexA]
-				if indexB := strings.Index(name, "."); indexB != -1 {
-					variableType = fmt.Sprintf("#%s", name[indexB:])
-					packageSort = name[:indexB]
-				}
-				variableType = prefix + variableType
-			}
-		}
-		importA := func() string {
-			if _, ok := golangBaseType[name]; ok {
-				return ""
+			if index := strings.Index(name, "."); index != -1 {
+				packageSort = name[:index]
+				variableType = fmt.Sprintf("%s#%s", prefix, name[index:])
 			} else {
+				variableType = fmt.Sprintf("#%s", name)
+			}
+
+			if _, ok := golangBaseType[name]; !ok {
 				if importA, ok := file.ImportA[packageSort]; ok {
-					return importA
+					packageImport = importA
 				} else {
-					return file.PkgPath
+					packageImport = file.PkgPath
 				}
 			}
+			return
 		}()
 
 		if len(field.Names) == 0 {
 			var name string
-			name = strings.Replace(fieldType, "[", "", -1)
-			name = strings.Replace(name, "]", "", -1)
+			name = strings.Replace(fieldType, "[]", "", -1)
 			name = strings.Replace(name, "*", "", -1)
 			name = strings.Replace(name, ".", "", -1)
-			name = strings.Replace(name, "{", "", -1)
-			name = strings.Replace(name, "}", "", -1)
-			name += "0"
-			fieldname := title(name)
-			field := Field{
+			name = strings.Replace(name, "{}", "", -1)
+			fieldName := title(name)
+			fields[key] = Field{
 				Name:         name,
-				FieldName:    fieldname,
-				Variable:     fieldname,
+				FieldName:    fieldName,
+				Variable:     fieldName,
 				VariableType: variableType,
 				GoType:       fieldType,
-				Package:      importA,
+				Package:      packageImport,
 				ProtoType:    protoType,
 			}
-			fields = append(fields, field)
 		} else {
 			for _, value := range field.Names {
-				fieldname := title(value.Name)
-				fields = append(fields, Field{
+				fieldName := title(value.Name)
+				fields[key] = Field{
 					Name:         value.Name,
 					FieldName:    value.Name,
-					Variable:     fieldname,
+					Variable:     fieldName,
 					VariableType: variableType,
 					GoType:       fieldType,
-					Package:      importA,
+					Package:      packageImport,
 					ProtoType:    protoType,
-				})
+				}
 			}
 		}
 	}
