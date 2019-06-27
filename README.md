@@ -29,3 +29,5 @@ golang-common
 		* [pagination](https://github.com/CharlesBases/common/tree/master/web/request)
 		* [http](https://github.com/CharlesBases/common/tree/master/web/request)
 * [wechat(未完成)](https://github.com/CharlesBases/common/tree/master/wechat)
+* [benchmarking](https://github.com/CharlesBases/common/tree/master/benchmarking)
+	* [wrk](https://github.com/CharlesBases/common/tree/master/benchmarking/wrk)
