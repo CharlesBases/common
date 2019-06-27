@@ -22,7 +22,7 @@ golang-common
 	* [recovery](https://github.com/CharlesBases/common/tree/master/middleware)
 	* [negroni](https://github.com/CharlesBases/common/tree/master/middleware)
 	* [opentracing](https://github.com/CharlesBases/common/tree/master/middleware)
-* [conversion(未完成)](https://github.com/CharlesBases/common/blob/master/utils/conversion.go)
+* [conversion(未完成)](https://github.com/CharlesBases/common/blob/master/utils)
 * [regexp](https://github.com/CharlesBases/common/tree/master/verify)
 * [web](https://github.com/CharlesBases/common/tree/master/web)
 	* [request](https://github.com/CharlesBases/common/tree/master/web/request)
