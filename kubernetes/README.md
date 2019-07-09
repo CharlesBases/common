@@ -13,7 +13,9 @@ $ kubectl create -f single-config-file.yaml
 
 # 集群
 集群是一组节点，这些节点可以是物理服务器或者虚拟机，之上安装了Kubernetes平台。下图展示的集群是一个典型的Kubernetes架构图。
-![Kubernetes Cluster](http://dockone.io/uploads/article/20190625/d7ce07842371eab180725bab5164ec17.png)
+
+![Kubernetes Cluster](./pic/Kubernetes Cluster.png)
+
 - Pod
 	- Pod安排在节点上，包含一组容器和卷。同一个Pod里的容器共享同一个网络命名空间，可以使用localhost互相通信。Pod是短暂的，不是持续性实体。你可能会有这些问题：
 	    - 如果Pod是短暂的，那么我怎么才能持久化容器数据使其能够跨重启而存在呢？
@@ -30,7 +32,8 @@ $ kubectl create -f single-config-file.yaml
 	- *是否手动创建Pod，如果想要创建同一个容器的多份拷贝，需要一个个分别创建出来么，能否将Pods划到逻辑组里*
 
       Replication Controller确保任意时间都有指定数量的Pod“副本”在运行。如果为某个Pod创建了Replication Controller并且指定3个副本，它会创建3个Pod，并且持续监控它们。如果某个Pod不响应，那么Replication Controller会替换它，保持总数为3.如下面的动画所示：
-      ![Replication Controller](http://dockone.io/uploads/article/20190625/03d07039d9fc80c0f692d6176f65936e.gif)
+
+      ![Replication Controller](./pic/Replication Controller.gif)
 
       如果之前不响应的Pod恢复了，现在就有4个Pod了，那么Replication Controller会将其中一个终止保持总数为3。如果在运行中将副本总数改为5，Replication Controller会立刻启动2个新Pod，保证总数为5。还可以按照这样的方式缩小Pod，这个特性在执行滚动升级时很有用。
 
@@ -49,7 +52,8 @@ $ kubectl create -f single-config-file.yaml
         - 现在前端已经得到了后端服务的IP地址，但是它应该访问2个后台Pod的哪一个呢？Service在这2个后台Pod之间提供透明的负载均衡，会将请求分发给其中的任意一个（如下面的动画所示）。通过每个Node上运行的代理（kube-proxy）完成。这里有更多技术细节。
 
       下述动画展示了Service的功能。注意该图作了很多简化。如果不进入网络配置，那么达到透明的负载均衡目标所涉及的底层网络和路由相对先进。
-      ![Service](http://dockone.io/uploads/article/20190625/e7a273fcdc03d2417b354b60c253552f.gif)
+
+      ![Service](./pic/Service.gif)
 
       有一个特别类型的Kubernetes Service，称为'LoadBalancer'，作为外部负载均衡器使用，在一定数量的Pod之间均衡流量。比如，对于负载均衡Web流量很有用。
 - Container（容器）
