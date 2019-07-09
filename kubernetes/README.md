@@ -33,7 +33,7 @@ $ kubectl create -f single-config-file.yaml
 
       Replication Controller确保任意时间都有指定数量的Pod“副本”在运行。如果为某个Pod创建了Replication Controller并且指定3个副本，它会创建3个Pod，并且持续监控它们。如果某个Pod不响应，那么Replication Controller会替换它，保持总数为3.如下面的动画所示：
 
-      ![Replication Controller](https://github.com/CharlesBases/common/blob/master/kubernetes/.pic/Replication Controller.gif)
+      ![Replication_Controller](https://github.com/CharlesBases/common/blob/master/kubernetes/.pic/Replication_Controller.gif)
 
       如果之前不响应的Pod恢复了，现在就有4个Pod了，那么Replication Controller会将其中一个终止保持总数为3。如果在运行中将副本总数改为5，Replication Controller会立刻启动2个新Pod，保证总数为5。还可以按照这样的方式缩小Pod，这个特性在执行滚动升级时很有用。
 
@@ -53,7 +53,7 @@ $ kubectl create -f single-config-file.yaml
 
       下述动画展示了Service的功能。注意该图作了很多简化。如果不进入网络配置，那么达到透明的负载均衡目标所涉及的底层网络和路由相对先进。
 
-      ![Service](https://github.com/CharlesBases/common/blob/master/kubernetes/pic/Service.gif)
+      ![Service](https://github.com/CharlesBases/common/blob/master/kubernetes/.pic/Service.gif)
 
       有一个特别类型的Kubernetes Service，称为'LoadBalancer'，作为外部负载均衡器使用，在一定数量的Pod之间均衡流量。比如，对于负载均衡Web流量很有用。
 - Container（容器）
