@@ -1,4 +1,4 @@
-### Kubernetes
+# Kubernetes
 Kubernetes是自动化容器操作的开源平台，这些操作包括部署、调度和节点集群间扩展。如果你曾经用过Docker容器技术部署容器，那么可以将Docker看成Kubernetes内部使用的低级别组件。Kubernetes不仅仅支持Docker，还支持Rocket，这是另一种容器技术。
 使用Kubernetes可以：
 	- 自动化容器的部署和复制
@@ -11,12 +11,12 @@ Kubernetes是自动化容器操作的开源平台，这些操作包括部署、�
 $ kubectl create -f single-config-file.yaml
 ```
 
-# 集群
+## 集群
 集群是一组节点，这些节点可以是物理服务器或者虚拟机，之上安装了Kubernetes平台。下图展示的集群是一个典型的Kubernetes架构图。
 
 ![Cluster](https://github.com/CharlesBases/common/blob/master/kubernetes/.pic/Cluster.png)
 
-- Pod
+- ### Pod
 	- Pod安排在节点上，包含一组容器和卷。同一个Pod里的容器共享同一个网络命名空间，可以使用localhost互相通信。Pod是短暂的，不是持续性实体。你可能会有这些问题：
 	    - 如果Pod是短暂的，那么我怎么才能持久化容器数据使其能够跨重启而存在呢？
 	        是的，Kubernetes支持卷的概念，因此可以使用持久化的卷类型。
@@ -24,11 +24,11 @@ $ kubectl create -f single-config-file.yaml
 	        可以手动创建单个Pod，但是也可以使用Replication Controller使用Pod模板创建出多份拷贝。
 	    - 如果Pod是短暂的，那么重启时IP地址可能会改变，那么怎么才能从前端容器正确可靠地指向后台容器呢？
 	        这时可以使用Service。
-- Label（标签）
+- ### Label（标签）
 	- 一些Pod有Label。一个Label是attach到Pod的一对键值对，用来传递用户定义的属性。
 		比如，你可能创建了一个"tier"和“app”标签，通过Label（tier=frontend, app=myapp）来标记前端Pod容器，使用Label（tier=backend, app=myapp）标记后台Pod。
 		然后可以使用Selectors选择带有特定Label的Pod，并且将Service或者Replication Controller应用到上面。
-- Replication Controller（复制控制器）
+- ### Replication Controller（复制控制器）
 	- *是否手动创建Pod，如果想要创建同一个容器的多份拷贝，需要一个个分别创建出来么，能否将Pods划到逻辑组里*
 
       Replication Controller确保任意时间都有指定数量的Pod“副本”在运行。如果为某个Pod创建了Replication Controller并且指定3个副本，它会创建3个Pod，并且持续监控它们。如果某个Pod不响应，那么Replication Controller会替换它，保持总数为3.如下面的动画所示：
@@ -38,11 +38,11 @@ $ kubectl create -f single-config-file.yaml
       如果之前不响应的Pod恢复了，现在就有4个Pod了，那么Replication Controller会将其中一个终止保持总数为3。如果在运行中将副本总数改为5，Replication Controller会立刻启动2个新Pod，保证总数为5。还可以按照这样的方式缩小Pod，这个特性在执行滚动升级时很有用。
 
       当创建Replication Controller时，需要指定两个东西：
-      Pod模板：用来创建Pod副本的模板
-      Label：Replication Controller需要监控的Pod的标签。
+        - Pod模板：用来创建Pod副本的模板
+        - Label：Replication Controller需要监控的Pod的标签。
 
       现在已经创建了Pod的一些副本，那么在这些副本上如何均衡负载呢？我们需要的是Service。
-- Service（服务）
+- ### Service（服务）
 	- *如果Pods是短暂的，那么重启时IP地址可能会改变，怎么才能从前端容器正确可靠地指向后端容器呢?*
 
       Service是定义一系列Pod以及访问这些Pod的策略的一层抽象。Service通过Label找到Pod组。因为Service是抽象的，所以在图表里通常看不到它们的存在，这也就让这一概念更难以理解。
@@ -56,13 +56,13 @@ $ kubectl create -f single-config-file.yaml
       ![Service](https://github.com/CharlesBases/common/blob/master/kubernetes/.pic/Service.gif)
 
       有一个特别类型的Kubernetes Service，称为'LoadBalancer'，作为外部负载均衡器使用，在一定数量的Pod之间均衡流量。比如，对于负载均衡Web流量很有用。
-- Container（容器）
-- Kubernetes Master（主节点）
+- ### Container（容器）
+- ### Kubernetes Master（主节点）
 	- 集群拥有一个Kubernetes Master。
 		Kubernetes Master提供集群的独特视角，并且拥有一系列组件，比如Kubernetes API Server。
-		API Server提供可以用来和集群交互的REST端点。
-		Master节点包括用来创建和复制Pod的Replication Controller。
-- Node（节点）
+			- API Server提供可以用来和集群交互的REST端点。
+			- Master节点包括用来创建和复制Pod的Replication Controller。
+- ### Node（节点）
 	- Node是物理或者虚拟机器，作为Kubernetes worker，通常称为Minion。每个节点都运行如下Kubernetes关键组件：
       - Kubelet：是主节点代理。
       - Kube-proxy：Service使用其将链接路由到Pod。
