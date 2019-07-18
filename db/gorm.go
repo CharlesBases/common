@@ -52,6 +52,8 @@ func initMySql(database string) {
 	db.BlockGlobalUpdate(true)
 	db.Set("gorm:association_autoupdate", false).Set("gorm:association_autocreate", false)
 
+	// db.Exec("set sql_mode=(select replace(@@sql_mode,'ONLY_FULL_GROUP_BY',''))")
+
 	if DB != nil {
 		DB.Close()
 	}
@@ -68,7 +70,7 @@ func ping() bool {
 		}
 		status = false
 	}
-	Sync.RUnlock()
+	Sync.Unlock()
 	return status
 }
 
