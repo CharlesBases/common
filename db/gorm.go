@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -14,26 +13,14 @@ import (
 var (
 	DB *gorm.DB
 
-	debug        = false
-	maxIdleConns = 2000
-	maxOpenConns = 1000
-
-	Sync sync.RWMutex
+	debug           = false
+	maxIdleConns    = 2000
+	maxOpenConns    = 1000
+	connMaxLifetime = 10
 )
 
 func InitGorm(database string) {
 	initMySql(database)
-
-	go func() {
-		ticker := time.NewTicker(time.Second * 10)
-		for {
-			<-ticker.C
-			if !ping() {
-				log.Error(fmt.Sprintf(" - db ping error, connect again. - "))
-				initMySql(database)
-			}
-		}
-	}()
 }
 
 func initMySql(database string) {
@@ -45,6 +32,7 @@ func initMySql(database string) {
 
 	db.DB().SetMaxIdleConns(maxIdleConns)
 	db.DB().SetMaxOpenConns(maxOpenConns)
+	db.DB().SetConnMaxLifetime(time.Duration(connMaxLifetime) * time.Second)
 
 	db.LogMode(debug)
 	db.SetLogger(new(Logger))
@@ -59,19 +47,6 @@ func initMySql(database string) {
 	}
 
 	DB = db
-}
-
-func ping() bool {
-	Sync.RLock()
-	status := true
-	if err := DB.DB().Ping(); err != nil {
-		if DB != nil {
-			DB.Close()
-		}
-		status = false
-	}
-	Sync.Unlock()
-	return status
 }
 
 type Logger struct {
