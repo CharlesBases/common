@@ -1,21 +1,14 @@
 package db
 
-import (
-	"testing"
+import "github.com/jinzhu/gorm"
 
-	"github.com/jinzhu/gorm"
-)
-
-type User struct {
-}
-
-func TestTransaction(t *testing.T) {
-	user := User{}
-	Post(&user)
-}
-
-func Post(user *User) error {
-	return Transaction(func(tx *gorm.DB) error {
-		return tx.Create(user).Error
-	})
+func Transactions() error {
+	return Transaction(
+		func(tx *gorm.DB) error {
+			return tx.Error
+		},
+		func(tx *gorm.DB) error {
+			return tx.Error
+		},
+	)
 }
