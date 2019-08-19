@@ -29,20 +29,20 @@ thread_cache_size               = 8
 symbolic-links                  = 0
 skip_name_resolve               = ON
 
-character-set-server=utf8mb4
-collation-server=utf8mb4_unicode_ci
+character-set-server            = utf8mb4
+collation-server                = utf8mb4_unicode_ci
 
 innodb_file_per_table           = ON
 innodb_buffer_pool_size         = 512M
 innodb_flush_log_at_trx_commit  = 1
 
-sql_mode=NO_ENGINE_SUBSTITUTION,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,STRICT_TRANS_TABLES
+sql_mode                        = NO_ENGINE_SUBSTITUTION,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,STRICT_TRANS_TABLES
 
 pid-file    = /var/run/mysqld/mysqld.pid
 socket      = /var/run/mysqld/mysqld.sock
 datadir     = /var/lib/mysql
 
-secure-file-priv= NULL
+secure-file-priv = NULL
 
 [mysqld_safe]
 !includedir /etc/mysql/conf.d/
@@ -59,7 +59,7 @@ docker run \
 -v ${conf}:/etc/mysql/conf.d  \
 -v ${logs}:/logs/mysql/ \
 -v ${data}:/var/lib/mysql \
--v ${mysql}/${master}.cnf:/etc/mysql/my.cnf \
+-v ${mysql}/${slave}.cnf:/etc/mysql/my.cnf \
 -d \
 --name ${name} \
 mysql
