@@ -8,7 +8,7 @@
 1.  创建主库
 	- 添加 slave 账号
 		mysql[root]> create user 'user'@'192.168.1.2' identified by '123456';
-		mysql[root]> GRANT REPLICATION SLAVE ON *.* TO 'user'@'192.168.1.81';
+		mysql[root]> GRANT REPLICATION SLAVE ON *.* TO 'user'@'192.168.1.2';
 	- 刷新新用户权限
 		mysql[root]> flush privileges;
 	- 查看 master 状态 (File, Position)
