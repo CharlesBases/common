@@ -34,7 +34,7 @@
 		mysql> CHANGE MASTER TO MASTER_HOST='192.168.1.1',MASTER_USER='root',MASTER_PASSWORD='123456',MASTER_PORT=3306,MASTER_LOG_FILE='mysql-master-bin.000003',MASTER_LOG_POS=710,MASTER_CONNECT_RETRY=10;
 	- 启动 slave
 		mysql> start slave;
-	- 查看 slave 状态 (Slave_IO_Running[YES], Slave_SQL_Running[YES])
+	- 查看 slave 状态 (Slave_IO_Running[YES | Connecting], Slave_SQL_Running[YES])
 		mysql> show slave status;
 
 3. 测试同步
