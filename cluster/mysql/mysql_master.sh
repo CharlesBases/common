@@ -3,10 +3,10 @@
 set -e
 
 port=3306
-name=mysql_master
-password=123456                     # MySql root password
-mysql=/home/root/MySql/      # MySql conf
-master=master
+name=mysql_master           # container name
+password=123456             # mysql root password
+mysql=/home/root/MySql      # mysql dir
+master=master               # master tag
 
 conf=${mysql}/conf
 data=${mysql}/data
@@ -57,7 +57,7 @@ docker run \
 	-p ${port}:3306 \
 	-e MYSQL_ROOT_PASSWORD=${password} \
 	-v ${conf}:/etc/mysql/conf.d  \
-	-v ${logs}:/logs/mysql/ \
+	-v ${logs}:/logs/mysql \
 	-v ${data}:/var/lib/mysql \
 	-v ${mysql}/${master}.cnf:/etc/mysql/my.cnf \
 	-d \

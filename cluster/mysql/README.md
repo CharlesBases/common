@@ -10,11 +10,8 @@
 		mysql> create user 'user'@'192.168.1.2' identified by '123456';
 		mysql> GRANT REPLICATION SLAVE ON *.* TO 'user'@'192.168.1.2';
 	- 添加 proxysql 账号
-		mysql> create user 'proxysql'@'192.168.1.1' identified by 'proxysql';
-		mysql> GRANT ALL ON *.* TO 'proxysql'@'192.168.1.1';
-	- 添加 monitor 账号
-		mysql> create user 'monitor'@'192.168.1.1' identified by 'monitor';
-		mysql> GRANT SELECT ON *.* TO 'monitor'@'192.168.1.1';
+		mysql> create user 'proxysql'@'%' identified by 'proxysql';
+		mysql> GRANT ALL ON *.* TO 'proxysql'@'%';
 	- 刷新新用户权限
 		mysql> flush privileges;
 	- 查看 master 状态 (File, Position)
@@ -30,8 +27,11 @@
 		- 授予权限
 			mysql> grant select ON *.* TO 'user'@'localhost';
 			mysql> grant select ON *.* TO 'user'@'%';
+	- 添加 monitor 账号
+		mysql> create user 'monitor'@'%' identified by 'monitor';
+		mysql> GRANT SELECT ON *.* TO 'monitor'@'%';
 	- 设置复制
-		mysql> CHANGE MASTER TO MASTER_HOST='192.168.1.1',MASTER_USER='root',MASTER_PASSWORD='123456',MASTER_PORT=3306,MASTER_LOG_FILE='mysql-master-bin.000003',MASTER_LOG_POS=710,MASTER_CONNECT_RETRY=10;
+		mysql> CHANGE MASTER TO MASTER_HOST='192.168.1.1',MASTER_USER='root',MASTER_PASSWORD='123456',MASTER_PORT=3306,MASTER_LOG_FILE='mysql-master-bin.000003',MASTER_LOG_POS=888,MASTER_CONNECT_RETRY=10;
 	- 启动 slave
 		mysql> start slave;
 	- 查看 slave 状态 (Slave_IO_Running[YES | Connecting], Slave_SQL_Running[YES])
