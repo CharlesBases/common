@@ -50,7 +50,7 @@ log-error = /logs/mysql/server.log
 
 ' > ${mysql}/${slave}.cnf
 
-docker rm -f $(docker ps -a | grep ${name} | awk '{print $1}')
+# docker rm -f $(docker ps -a | grep ${name} | awk '{print $1}')
 
 # MySql
 docker run \
