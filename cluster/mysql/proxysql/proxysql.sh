@@ -13,7 +13,7 @@ cluster_name=proxysql_cluster
 etcd_host=10.20.2.4:2379
 network=proxysql_net
 
-proxysql=/Users/sun/Program/MySql/proxysql          # proxysql dir
+proxysql=/home/root/MySql/proxysql                  # proxysql dir
 data=${proxysql}/data
 conf=${proxysql}/proxysql.cnf
 
@@ -25,7 +25,7 @@ datadir="/var/lib/proxysql"                         # 数据目录
 
 admin_variables =
 {
-	admin_credentials="proxysql:proxysql"           # admin 凭证
+	admin_credentials="administrator:administrator" # admin 凭证
 	mysql_ifaces="0.0.0.0:6032"                     # admin 管理端口
 	refresh_interval=2000
 	# debug=true
@@ -60,22 +60,21 @@ mysql_variables =
 mysql_servers =
 (
     {
-		hostgroup = 1               # master group
-	    address = "192.168.1.99"
+		hostgroup = 10              # master group
+	    address = "192.168.1.80"
 	    port = 3306
+		weight = 1
 	    status = "ONLINE"
-	    weight = 1
-	    compression = 0
-	    max_connections = 200
+	    max_connections = 200       # 最大连接
     },
     {
-		hostgroup = 2               # slave group
-		address = "192.168.1.80"
+		hostgroup = 20              # slave group
+		address = "192.168.1.81"
 		port = 3306
-		status = "ONLINE"
 		weight = 1
-		compression = 0
-		max_connections=1000
+		status = "ONLINE"
+	    max_connections = 1000      # 最大连接
+	    max_replication_lag = 30    # 最大延迟 (只适用于从节点)
     }
 )
 
@@ -84,14 +83,14 @@ mysql_users =
     {
         username = "proxysql"
         password = "proxysql"
-        default_hostgroup = 1
+        default_hostgroup = 10
         max_connections=1000
         active = 1
     },
     {
         username = "user"
         password = "123456"
-        default_hostgroup = 2
+        default_hostgroup = 20
         max_connections=1000
         active = 1
     }
@@ -99,34 +98,34 @@ mysql_users =
 
 mysql_query_rules =
 (
-#	{
-#		rule_id=1
-#		active=1
-#		match_pattern="^SELECT .* FOR UPDATE"
-#		destination_hostgroup=1
-#		apply=1
-#	},
-#	{
-#		rule_id=2
-#		active=1
-#		match_pattern="^SELECT .*"
-#		destination_hostgroup=2
-#		apply=1
-#	},
-#	{
-#		rule_id=3
-#		active=1
-#		match_pattern=".*"
-#		destination_hostgroup=1
-#		apply=1
-#	}
+    {
+        rule_id=100
+        active=1
+        match_pattern="^SELECT .* FOR UPDATE"
+        destination_hostgroup=10
+        apply=1
+    },
+    {
+        rule_id=200
+        active=1
+        match_pattern="^SELECT .*"
+        destination_hostgroup=20
+        apply=1
+    },
+    {
+		rule_id=300
+		active=1
+		match_pattern=".*"
+		destination_hostgroup=10
+		apply=1
+    }
 )
 
 mysql_replication_hostgroups=
 (
     {
-        writer_hostgroup = 1
-        reader_hostgroup = 2
+        writer_hostgroup = 10
+        reader_hostgroup = 20
         comment = "MySql Ver 8.0.17"
    }
 )
@@ -145,7 +144,6 @@ scheduler =
 #		arg5="/var/lib/proxysql/proxysql_galera_checker.log"
 #	}
 )
-
 
 ' > ${proxysql}/proxysql.cnf
 
