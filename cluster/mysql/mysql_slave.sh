@@ -4,8 +4,8 @@ set -e
 
 port=3306
 name=mysql_slave
-password=123456
-mysql=/Users/sun/Program/MySql  # 配置文件目录
+password=123456             # MySql root password
+mysql=/home/root/MySql/     # MySql conf
 slave=slave
 
 conf=${mysql}/conf
@@ -50,16 +50,16 @@ log-error = /logs/mysql/server.log
 
 ' > ${mysql}/${slave}.cnf
 
-# docker rm -f $(docker ps -a | grep ${name} | awk '{print $1}')
+docker rm -f $(docker ps -a | grep ${name} | awk '{print $1}')
 
 # MySql
 docker run \
--p ${port}:3306 \
--e MYSQL_ROOT_PASSWORD=${password} \
--v ${conf}:/etc/mysql/conf.d  \
--v ${logs}:/logs/mysql/ \
--v ${data}:/var/lib/mysql \
--v ${mysql}/${slave}.cnf:/etc/mysql/my.cnf \
--d \
---name ${name} \
-mysql
+	-p ${port}:3306 \
+	-e MYSQL_ROOT_PASSWORD=${password} \
+	-v ${conf}:/etc/mysql/conf.d  \
+	-v ${logs}:/logs/mysql/ \
+	-v ${data}:/var/lib/mysql \
+	-v ${mysql}/${slave}.cnf:/etc/mysql/my.cnf \
+	-d \
+	--name ${name} \
+	mysql

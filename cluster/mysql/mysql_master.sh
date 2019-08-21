@@ -4,8 +4,8 @@ set -e
 
 port=3306
 name=mysql_master
-password=123456
-mysql=/Users/sun/Program/MySql  # 配置文件目录
+password=123456                     # MySql root password
+mysql=/home/root/MySql/      # MySql conf
 master=master
 
 conf=${mysql}/conf
@@ -54,12 +54,12 @@ log-error = /logs/mysql/server.log
 
 # MySql
 docker run \
--p ${port}:3306 \
--e MYSQL_ROOT_PASSWORD=${password} \
--v ${conf}:/etc/mysql/conf.d  \
--v ${logs}:/logs/mysql/ \
--v ${data}:/var/lib/mysql \
--v ${mysql}/${master}.cnf:/etc/mysql/my.cnf \
--d \
---name ${name} \
-mysql
+	-p ${port}:3306 \
+	-e MYSQL_ROOT_PASSWORD=${password} \
+	-v ${conf}:/etc/mysql/conf.d  \
+	-v ${logs}:/logs/mysql/ \
+	-v ${data}:/var/lib/mysql \
+	-v ${mysql}/${master}.cnf:/etc/mysql/my.cnf \
+	-d \
+	--name ${name} \
+	mysql
