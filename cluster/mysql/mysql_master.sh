@@ -50,7 +50,11 @@ log-error = /logs/mysql/server.log
 
 ' > ${mysql}/${master}.cnf
 
-# docker rm -f $(docker ps -a | grep ${name} | awk '{print $1}')
+container_id=$(docker ps -a | grep ${name} | awk '{print $1}')
+if [ ${#container_id[@]} -gt 0 ]
+then
+	docker rm -f ${container_id}
+fi
 
 # MySql
 docker run \
