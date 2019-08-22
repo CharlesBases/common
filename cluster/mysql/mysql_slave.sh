@@ -31,6 +31,7 @@ skip_name_resolve               = ON
 
 character-set-server            = utf8mb4
 collation-server                = utf8mb4_unicode_ci
+default_authentication_plugin   = mysql_native_password
 
 innodb_file_per_table           = ON
 innodb_buffer_pool_size         = 512M
