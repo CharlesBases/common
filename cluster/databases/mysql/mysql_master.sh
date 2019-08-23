@@ -5,7 +5,7 @@ set -e
 port=3306
 name=mysql_master           # container name
 password=123456             # mysql root password
-mysql=/home/root/mysql      # mysql dir
+mysql=/Users/sun/Program/mysql      # mysql dir
 master=master               # master tag
 
 baks=${mysql}/baks
@@ -68,7 +68,6 @@ docker run \
 	-v ${logs}:/logs/mysql \
 	-v ${data}:/var/lib/mysql \
 	-v ${mysql}/${master}.cnf:/etc/mysql/my.cnf \
-	-Duser.timezone=GMT+08
 	-d \
 	--name ${name} \
 	mysql
