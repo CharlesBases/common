@@ -4,7 +4,7 @@ admin_port=6032
 mysql_port=6033
 
 name=proxysql                                       # container name
-proxysql=/home/root/MySql/proxysql                  # proxysql dir
+proxysql=/home/root/mysql/proxysql                  # proxysql dir
 
 data=${proxysql}/data
 conf=${proxysql}/proxysql.cnf
@@ -123,7 +123,7 @@ mysql_replication_hostgroups =
     {
         writer_hostgroup = 10
         reader_hostgroup = 20
-        comment = "MySql Ver 8.0.17"
+        comment = "MySQL Ver 8.0.17"
    }
 )
 
@@ -133,7 +133,7 @@ mysql_replication_hostgroups =
 #			id = 1
 #			active = 0
 #			interval_ms = 3600
-#			filename = "/home/root/MySql/proxysql/proxysql_timer.sh"
+#			filename = "/home/root/mysql/proxysql/proxysql_timer.sh"
 #			arg1 = "0"
 #			arg2 = "0"
 #			arg3 = "0"
@@ -150,7 +150,7 @@ then
 	docker rm -f ${container_id}
 fi
 
-# proxysql
+# ProxySQL
 docker run \
 	-p ${admin_port}:6032 -p ${mysql_port}:6033 \
 	-v ${data}:/var/lib/proxysql/ \
