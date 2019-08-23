@@ -1,14 +1,14 @@
 # Mysql
 
-- master ( proxysql )
+- #### master ( proxysql )
 
 	10.10.10.10
 
-- slave
+- #### slave
 
 	10.10.10.20
 
-1.  创建主库
+## 1. 创建主库
 
 	- 创建 slave 账号
 
@@ -38,7 +38,7 @@
 
 		mysql[root]> show master status;
 
-2.  创建从库
+## 2. 创建从库
 
 	- 验证 master 连接
 
