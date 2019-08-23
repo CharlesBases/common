@@ -62,7 +62,7 @@ fi
 docker run \
 	-p ${port}:3306 \
 	-e MYSQL_ROOT_PASSWORD=${password} \
-	-v ${baks}:/root/mysql/baks  \
+	-v ${baks}:/opt/mysql/baks  \
 	-v ${conf}:/etc/mysql/conf.d  \
 	-v ${logs}:/logs/mysql \
 	-v ${data}:/var/lib/mysql \
