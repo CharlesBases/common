@@ -1,4 +1,4 @@
-# ProxySQL[https://github.com/malongshuai/proxysql/wiki]
+# [ProxySQL](https://github.com/malongshuai/proxysql/wiki)
 
 
 - ## 管理端口
