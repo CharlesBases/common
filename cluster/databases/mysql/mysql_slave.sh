@@ -60,6 +60,7 @@ fi
 # MySQL
 docker run \
 	-p ${port}:3306 \
+	-e TZ="Asia/Shanghai" \
 	-e MYSQL_ROOT_PASSWORD=${password} \
 	-v ${conf}:/etc/mysql/conf.d  \
 	-v ${logs}:/logs/mysql \

@@ -153,6 +153,7 @@ fi
 # ProxySQL
 docker run \
 	-p ${admin_port}:6032 -p ${mysql_port}:6033 \
+	-e TZ="Asia/Shanghai" \
 	-v ${data}:/var/lib/proxysql/ \
 	-v ${conf}:/etc/proxysql.cnf \
 	-d \

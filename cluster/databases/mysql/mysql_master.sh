@@ -50,6 +50,9 @@ secure-file-priv = NULL
 !includedir /etc/mysql/conf.d/
 log-error = /logs/mysql/server.log
 
+[mysqldump]
+single-transaction
+
 ' > ${mysql}/${master}.cnf
 
 container_id=$(docker ps -a | grep ${name} | awk '{print $1}')
@@ -61,12 +64,14 @@ fi
 # MySQL
 docker run \
 	-p ${port}:3306 \
+	-e TZ="Asia/Shanghai" \
 	-e MYSQL_ROOT_PASSWORD=${password} \
 	-v ${baks}:/opt/mysql/baks  \
 	-v ${conf}:/etc/mysql/conf.d  \
 	-v ${logs}:/logs/mysql \
 	-v ${data}:/var/lib/mysql \
 	-v ${mysql}/${master}.cnf:/etc/mysql/my.cnf \
+	-Duser.timezone=GMT+08
 	-d \
 	--name ${name} \
 	mysql
