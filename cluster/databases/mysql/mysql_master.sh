@@ -8,6 +8,7 @@ password=123456             # mysql root password
 mysql=/home/root/MySql      # mysql dir
 master=master               # master tag
 
+baks=${mysql}/baks
 conf=${mysql}/conf
 data=${mysql}/data
 logs=${mysql}/logs
@@ -61,6 +62,7 @@ fi
 docker run \
 	-p ${port}:3306 \
 	-e MYSQL_ROOT_PASSWORD=${password} \
+	-v ${baks}:/root/mysql/baks  \
 	-v ${conf}:/etc/mysql/conf.d  \
 	-v ${logs}:/logs/mysql \
 	-v ${data}:/var/lib/mysql \
