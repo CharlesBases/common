@@ -1,7 +1,7 @@
 # [ProxySQL](https://github.com/malongshuai/proxysql/wiki)
 
 
-- ## 管理端口
+##1. 管理端口
 
 	mysql -uadministrator -padministrator -h10.10.10.10 -P6032
 
@@ -17,6 +17,6 @@
 
 		mysql> select * from stats.stats_mysql_query_digest;
 
-- ## 业务端口
+##2. 业务端口
 
 	mysql -uproxysql -pproxysql -h10.10.10.10 -P6033
