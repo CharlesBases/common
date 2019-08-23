@@ -5,7 +5,7 @@ set -e
 port=3306
 name=mysql_master           # container name
 password=123456             # mysql root password
-mysql=/Users/sun/Program/mysql      # mysql dir
+mysql=/home/root/mysql      # mysql dir
 master=master               # master tag
 
 baks=${mysql}/baks
