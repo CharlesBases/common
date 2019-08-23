@@ -26,9 +26,9 @@
 
 		- monitor [监控账号]
 
-	        mysql[root]> create user 'monitor'@'%' identified by 'monitor';
+			mysql[root]> create user 'monitor'@'%' identified by 'monitor';
 
-	        mysql[root]> GRANT SUPER, REPLICATION CLIENT, SELECT ON *.* TO 'monitor'@'%';
+			mysql[root]> GRANT SUPER, REPLICATION CLIENT, SELECT ON *.* TO 'monitor'@'%';
 
 	- 刷新新用户权限
 
@@ -54,9 +54,9 @@
 
 		- monitor [监控账号]
 
-	        mysql[root]> create user 'monitor'@'%' identified by 'monitor';
+			mysql[root]> create user 'monitor'@'%' identified by 'monitor';
 
-	        mysql[root]> GRANT SUPER, REPLICATION CLIENT, SELECT ON *.* TO 'monitor'@'%';
+			mysql[root]> GRANT SUPER, REPLICATION CLIENT, SELECT ON *.* TO 'monitor'@'%';
 
 	- 设置复制
 
@@ -66,7 +66,7 @@
 
 		mysql[root]> start slave;
 
-	- 查看 slave 状态 (Slave_IO_Running[YES | Connecting], Slave_SQL_Running[YES])
+	- 查看 slave 状态 (Slave_IO_Running[ YES | Connecting ], Slave_SQL_Running[ YES ])
 
 		mysql[root]> show slave status;
 
