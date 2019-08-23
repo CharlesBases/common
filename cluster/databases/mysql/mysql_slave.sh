@@ -5,7 +5,7 @@ set -e
 port=3306
 name=mysql_slave                # container_name
 password=123456                 # mysql root password
-mysql=/home/root/MySql          # mysql dir
+mysql=/home/root/mysql          # mysql dir
 slave=slave                     # slave tag
 
 conf=${mysql}/conf
@@ -57,7 +57,7 @@ then
 	docker rm -f ${container_id}
 fi
 
-# MySql
+# MySQL
 docker run \
 	-p ${port}:3306 \
 	-e MYSQL_ROOT_PASSWORD=${password} \
