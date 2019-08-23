@@ -50,9 +50,6 @@ secure-file-priv = NULL
 !includedir /etc/mysql/conf.d/
 log-error = /logs/mysql/server.log
 
-[mysqldump]
-single-transaction
-
 ' > ${mysql}/${master}.cnf
 
 container_id=$(docker ps -a | grep ${name} | awk '{print $1}')
