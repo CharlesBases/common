@@ -10,7 +10,7 @@ name=mysql_master
 mysql_root_password=123456
 
 # config
-mysql_dir=/home/root/mysql
+mysql_dir=/Users/sun/Program/mysql
 master_tag=master
 
 conf=${mysql_dir}/conf
@@ -57,7 +57,7 @@ log-error = /logs/mysql/server.log
 ' > ${mysql_dir}/${master_tag}.cnf
 
 container_id=$(docker ps -a | grep ${name} | awk '{print $1}')
-if [ ${#container_id[@]} -gt 0 ]
+if [ ${#container_id} -ne 0 ]
 then
 	docker rm -f ${container_id}
 fi
