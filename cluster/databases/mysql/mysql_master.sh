@@ -2,18 +2,22 @@
 
 set -e
 
+# Docker
 port=3306
-name=mysql_master           # container name
-password=123456             # mysql root password
-mysql=/home/root/mysql      # mysql dir
-master=master               # master tag
+name=mysql_master
 
-baks=${mysql}/baks
-conf=${mysql}/conf
-data=${mysql}/data
-logs=${mysql}/logs
+# MySQL
+mysql_root_password=123456
 
-rm -rf ${mysql}
+# config
+mysql_dir=/home/root/mysql
+master_tag=master
+
+conf=${mysql_dir}/conf
+data=${mysql_dir}/data
+logs=${mysql_dir}/logs
+
+rm -rf ${mysql_dir}
 mkdir -p ${conf} ${data} ${logs}
 
 # master
@@ -50,7 +54,7 @@ secure-file-priv = NULL
 !includedir /etc/mysql/conf.d/
 log-error = /logs/mysql/server.log
 
-' > ${mysql}/${master}.cnf
+' > ${mysql_dir}/${master_tag}.cnf
 
 container_id=$(docker ps -a | grep ${name} | awk '{print $1}')
 if [ ${#container_id[@]} -gt 0 ]
@@ -62,12 +66,12 @@ fi
 docker run \
 	-p ${port}:3306 \
 	-e TZ="Asia/Shanghai" \
-	-e MYSQL_ROOT_PASSWORD=${password} \
+	-e MYSQL_ROOT_PASSWORD=${mysql_root_password} \
 	-v ${baks}:/opt/mysql/baks  \
 	-v ${conf}:/etc/mysql/conf.d  \
 	-v ${logs}:/logs/mysql \
 	-v ${data}:/var/lib/mysql \
-	-v ${mysql}/${master}.cnf:/etc/mysql/my.cnf \
+	-v ${mysql_dir}/${master_tag}.cnf:/etc/mysql/my.cnf \
 	-d \
 	--name ${name} \
 	mysql
