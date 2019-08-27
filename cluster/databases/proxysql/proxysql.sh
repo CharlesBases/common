@@ -178,3 +178,5 @@ docker run \
 	-d \
 	--name=${name} \
 	proxysql/proxysql
+
+# docker logs -f $(docker ps -l -q)
