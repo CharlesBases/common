@@ -57,7 +57,7 @@ log-error = /logs/mysql/server.log
 ' > ${mysql_dir}/${slave_tag}.cnf
 
 container_id=$(docker ps -a | grep ${name} | awk '{print $1}')
-if [ ${#container_id[@]} -gt 0 ]
+if [ ${#container_id} -ne 0 ]
 then
 	docker rm -f ${container_id}
 fi
