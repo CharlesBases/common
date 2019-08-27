@@ -13,12 +13,13 @@ mysql_root_password=123456
 mysql_dir=/Users/sun/Program/mysql
 master_tag=master
 
+baks=${mysql_dir}/baks
 conf=${mysql_dir}/conf
 data=${mysql_dir}/data
 logs=${mysql_dir}/logs
 
 rm -rf ${mysql_dir}
-mkdir -p ${conf} ${data} ${logs}
+mkdir -p ${baks} ${conf} ${data} ${logs}
 
 # master
 echo '
