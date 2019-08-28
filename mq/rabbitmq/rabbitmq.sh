@@ -34,7 +34,7 @@ docker run \
 	-p ${admin_port}:15672 -p ${visit_port}:5672 \
 	-e RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER} \
 	-e RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS} \
-	-v ${conf}:/etc/rabbitmq  \
+	-v ${conf}:/etc/rabbitmq \
 	-v ${logs}:/var/log/rabbitmq \
 	-v ${data}:/var/lib/rabbitmq \
 	-d \
