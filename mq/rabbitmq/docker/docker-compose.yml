@@ -1,0 +1,101 @@
+version: "3"
+services:
+
+  master:
+    image: rabbitmq:3.6-management
+    container_name: rabbitmq_master
+    restart: always
+    mem_limit: 256m
+    networks:
+      net1:
+        ipv4_address: 10.10.10.10
+    hostname: rabbitmq_master
+    ports:
+      - "55672:15672"
+      - "56720:5672"
+    env_file:
+      - ./parameters.env
+    environment:
+      - CONTAINER_NAME=rabbitmq_master
+      - RABBITMQ_HOSTNAME=rabbitmq_master
+      - RABBITMQ_NODENAME=rabbit
+
+  slave1:
+    image: rabbitmq:3.6-management
+    container_name: rabbitmq_node1
+    restart: always
+    depends_on:
+      - master
+    mem_limit: 256m
+    networks:
+      net1:
+        ipv4_address: 10.10.10.20
+    hostname: rabbitmq_node1
+    # ports:
+    #   - "56721:5672"
+    volumes:
+      - "./volumes/rabbitmq_slave/cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh"
+    entrypoint: "/usr/local/bin/cluster_entrypoint.sh"
+    command: "rabbitmq-server"
+    env_file:
+      - ./parameters.env
+    environment:
+      - CONTAINER_NAME=rabbitmq_node1
+      - RABBITMQ_HOSTNAME=rabbitmq_node1
+      - RABBITMQ_NODENAME=rabbit
+      - RMQHA_RAM_NODE=true
+
+  slave2:
+    image: rabbitmq:3.6-management
+    container_name: rabbitmq_node2
+    restart: always
+    depends_on:
+      - master
+    mem_limit: 256m
+    networks:
+      net1:
+        ipv4_address: 10.10.10.30
+    hostname: rabbitmq_node2
+    # ports:
+    #   - "56722:5672"
+    volumes:
+      - "./volumes/rabbitmq_slave/cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh"
+    entrypoint: "/usr/local/bin/cluster_entrypoint.sh"
+    command: "rabbitmq-server"
+    env_file:
+      - ./parameters.env
+    environment:
+      - CONTAINER_NAME=rabbitmq_node2
+      - RABBITMQ_HOSTNAME=rabbitmq_node2
+      - RABBITMQ_NODENAME=rabbit
+      - RMQHA_RAM_NODE=true
+
+  haproxy:
+    image: haproxy:1.8
+    container_name: rabbitmq_proxy
+    restart: always
+    depends_on:
+      - master
+      - slave1
+      - slave2
+    mem_limit: 256m
+    networks:
+      net1:
+        ipv4_address: 10.10.10.15
+    hostname: rabbitmq_proxy
+    ports:
+      - "56729:5672"
+      - "51080:1080"
+    volumes:
+      - "./volumes/rabbitmq_proxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
+      - "./volumes/rabbitmq_proxy:/root/rmqha_proxy"
+    environment:
+      - CONTAINER_NAME=rabbitmq_proxy
+
+networks:
+  net1:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.10.0/16
+          gateway: 10.10.10.1
