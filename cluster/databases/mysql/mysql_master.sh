@@ -10,7 +10,7 @@ name=mysql_master
 mysql_root_password=123456
 
 # config
-mysql_dir=/Users/sun/Program/mysql
+mysql_dir=/home/root/mysql
 master_tag=master
 
 baks=${mysql_dir}/baks
