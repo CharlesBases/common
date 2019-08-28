@@ -3,14 +3,14 @@
 set -e
 
 # Docker
-name=rabbitmq
-admin_port=15672                # 控制台端口
-visit_port=5672                 # 业务端口
+name=rabbitmq_node2
+admin_port=15673                # 控制台端口
+visit_port=5673                 # 业务端口
 RABBITMQ_DEFAULT_USER=admin
 RABBITMQ_DEFAULT_PASS=admin
 
 # config
-rabbitmq_dir=/home/root/rabbitmq
+rabbitmq_dir=/Users/sun/Program/rabbitmq
 
 conf=${rabbitmq_dir}/conf
 data=${rabbitmq_dir}/data
@@ -34,9 +34,6 @@ docker run \
 	-p ${admin_port}:15672 -p ${visit_port}:5672 \
 	-e RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER} \
 	-e RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS} \
-	-v ${conf}:/etc/rabbitmq \
-	-v ${logs}:/var/log/rabbitmq \
-	-v ${data}:/var/lib/rabbitmq \
 	-d \
 	--log-opt max-size=10m \
 	--log-opt max-file=3 \
