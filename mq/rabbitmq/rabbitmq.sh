@@ -10,7 +10,7 @@ RABBITMQ_DEFAULT_USER=admin
 RABBITMQ_DEFAULT_PASS=admin
 
 # config
-rabbitmq_dir=/Users/sun/Program/rabbitmq
+rabbitmq_dir=/home/root/rabbitmq
 
 conf=${rabbitmq_dir}/conf
 data=${rabbitmq_dir}/data
@@ -35,8 +35,10 @@ docker run \
 	-e RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER} \
 	-e RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS} \
 	-v ${conf}:/etc/rabbitmq  \
-    -v ${logs}:/var/log/rabbitmq \
-    -v ${data}:/var/lib/rabbitmq \
+	-v ${logs}:/var/log/rabbitmq \
+	-v ${data}:/var/lib/rabbitmq \
 	-d \
-	--name=${name} \
+	--log-opt max-size=10m \
+	--log-opt max-file=3 \
+	--name ${name} \
 	rabbitmq:3-management
