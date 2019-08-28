@@ -10,7 +10,7 @@ RABBITMQ_DEFAULT_USER=admin
 RABBITMQ_DEFAULT_PASS=admin
 
 # config
-rabbitmq_dir=/Users/sun/Program/rabbitmq
+rabbitmq_dir=/home/root/rabbitmq
 
 conf=${rabbitmq_dir}/conf
 data=${rabbitmq_dir}/data
