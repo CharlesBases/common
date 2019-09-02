@@ -4,29 +4,30 @@ set -e
 
 # Docker
 port=3306
-name=mysql_slave
+name=mysql_master
 
 # MySQL
 mysql_root_password=123456
 
 # config
 mysql_dir=/home/root/mysql
-slave_tag=slave
+master_tag=master
 
+baks=${mysql_dir}/baks
 conf=${mysql_dir}/conf
 data=${mysql_dir}/data
 logs=${mysql_dir}/logs
 
 rm -rf ${mysql_dir}
-mkdir -p ${conf} ${data} ${logs}
+mkdir -p ${baks} ${conf} ${data} ${logs}
 
-# slave
+# master
 echo '
 [mysqld]
-server-id                       = 2
-read_only                       = 1
-relay-log                       = mysql-relay-bin
-log-slave-updates               = 1
+server-id                       = 9
+log-bin                         = mysql-master-bin.log
+sync_binlog                     = 1
+log_bin_trust_function_creators = 1
 key_buffer_size                 = 16M
 max_allowed_packet              = 16M
 thread_stack                    = 256K
@@ -54,7 +55,7 @@ secure-file-priv = NULL
 !includedir /etc/mysql/conf.d/
 log-error = /logs/mysql/server.log
 
-' > ${mysql_dir}/${slave_tag}.cnf
+' > ${mysql_dir}/${master_tag}.cnf
 
 container_id=$(docker ps -a | grep ${name} | awk '{print $1}')
 if [ ${#container_id} -ne 0 ]
@@ -67,10 +68,11 @@ docker run \
 	-p ${port}:3306 \
 	-e TZ="Asia/Shanghai" \
 	-e MYSQL_ROOT_PASSWORD=${mysql_root_password} \
+	-v ${baks}:/opt/mysql/baks  \
 	-v ${conf}:/etc/mysql/conf.d  \
 	-v ${logs}:/logs/mysql \
 	-v ${data}:/var/lib/mysql \
-	-v ${mysql_dir}/${slave_tag}.cnf:/etc/mysql/my.cnf \
+	-v ${mysql_dir}/${master_tag}.cnf:/etc/mysql/my.cnf \
 	-d \
 	--name ${name} \
 	mysql
