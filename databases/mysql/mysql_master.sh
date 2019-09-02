@@ -24,20 +24,19 @@ mkdir -p ${baks} ${conf} ${data} ${logs}
 # master
 echo '
 [mysqld]
-server-id                       = 9
-log-bin                         = mysql-master-bin.log
+server-id                       = 1
+log-bin                         = mysql-master-bin
 log-slave-updates               = 1
 skip_slave_start                = 1
-sync_binlog                     = 1
 binlog_format                   = row
+
+gtid-mode                       = ON
+enforce-gtid-consistency        = ON
 
 key_buffer_size                 = 16M
 max_allowed_packet              = 16M
 thread_stack                    = 256K
 thread_cache_size               = 8
-
-gtid-mode                       = ON
-enforce-gtid-consistency        = ON
 
 character-set-server            = utf8mb4
 collation-server                = utf8mb4_unicode_ci

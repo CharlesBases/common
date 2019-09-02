@@ -23,20 +23,19 @@ mkdir -p ${conf} ${data} ${logs}
 # slave
 echo '
 [mysqld]
-server-id                       = 1
-log-bin                         = mysql-slave-bin.log
+server-id                       = 2
+log-bin                         = mysql-slave-bin
 log-slave-updates               = 1
-skip_slave_start                = 1
-sync_binlog                     = 1
+skip_slave_start                =
 binlog_format                   = row
+
+gtid-mode                       = ON
+enforce-gtid-consistency        = ON
 
 key_buffer_size                 = 16M
 max_allowed_packet              = 16M
 thread_stack                    = 256K
 thread_cache_size               = 8
-
-gtid-mode                       = ON
-enforce-gtid-consistency        = ON
 
 character-set-server            = utf8mb4
 collation-server                = utf8mb4_unicode_ci
