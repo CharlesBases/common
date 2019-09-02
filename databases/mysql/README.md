@@ -36,7 +36,7 @@
 
 	- 查看 master 状态 (File, Position)
 
-		mysql[root]> show master status;
+		mysql[root]> show master status \G
 
 ## 2. 创建从库
 
@@ -50,14 +50,6 @@
 
 		mysql[root]> GRANT SELECT ON *.* TO 'slave'@'%';
 
-	- 创建 proxysql 账号
-
-		- monitor [监控账号]
-
-			mysql[root]> create user 'monitor'@'%' identified by 'monitor';
-
-			mysql[root]> GRANT SUPER, REPLICATION CLIENT, SELECT ON *.* TO 'monitor'@'%';
-
 	- 设置复制
 
 		mysql[root]> CHANGE MASTER TO
@@ -65,16 +57,14 @@
 						MASTER_PORT=3306,
 						MASTER_USER='root',
 						MASTER_PASSWORD='123456',
-						MASTER_LOG_FILE='mysql-master-bin.000003',
-						MASTER_LOG_POS=888,
-						MASTER_CONNECT_RETRY=10;
+						MASTER_AUTO_POSITION=1;
 
 	- 启动 slave
 
 		mysql[root]> start slave;
 
-	- 查看 slave 状态 (Slave_IO_Running[ YES | Connecting ], Slave_SQL_Running[ YES ])
+	- 查看 slave 状态 (Slave_IO_Running[ YES ], Slave_SQL_Running[ YES ])
 
-		mysql[root]> show slave status;
+		mysql[root]> show slave status \G
 
 ## 3. 测试同步

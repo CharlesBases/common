@@ -4,7 +4,7 @@ set -e
 
 # Docker
 port=3306
-name=mysql_master
+name=mysql-master
 
 # MySQL
 mysql_root_password=123456
@@ -26,14 +26,18 @@ echo '
 [mysqld]
 server-id                       = 9
 log-bin                         = mysql-master-bin.log
+log-slave-updates               = 1
+skip_slave_start                = 1
 sync_binlog                     = 1
-log_bin_trust_function_creators = 1
+binlog_format                   = row
+
 key_buffer_size                 = 16M
 max_allowed_packet              = 16M
 thread_stack                    = 256K
 thread_cache_size               = 8
-symbolic-links                  = 0
-skip_name_resolve               = ON
+
+gtid-mode                       = ON
+enforce-gtid-consistency        = ON
 
 character-set-server            = utf8mb4
 collation-server                = utf8mb4_unicode_ci
@@ -49,7 +53,8 @@ pid-file    = /var/run/mysqld/mysqld.pid
 socket      = /var/run/mysqld/mysqld.sock
 datadir     = /var/lib/mysql
 
-secure-file-priv = NULL
+secure-file-priv    = NULL
+symbolic-links      = 0
 
 [mysqld_safe]
 !includedir /etc/mysql/conf.d/
@@ -75,4 +80,5 @@ docker run \
 	-v ${mysql_dir}/${master_tag}.cnf:/etc/mysql/my.cnf \
 	-d \
 	--name ${name} \
+	--hostname ${name} \
 	mysql

@@ -4,7 +4,7 @@ set -e
 
 # Docker
 port=3306
-name=mysql_slave
+name=mysql-slave
 
 # MySQL
 mysql_root_password=123456
@@ -24,19 +24,26 @@ mkdir -p ${conf} ${data} ${logs}
 echo '
 [mysqld]
 server-id                       = 1
-read_only                       = 1
-relay-log                       = mysql-relay-bin
+log-bin                         = mysql-slave-bin.log
 log-slave-updates               = 1
+skip_slave_start                = 1
+sync_binlog                     = 1
+binlog_format                   = row
+
 key_buffer_size                 = 16M
 max_allowed_packet              = 16M
 thread_stack                    = 256K
 thread_cache_size               = 8
-symbolic-links                  = 0
-skip_name_resolve               = ON
+
+gtid-mode                       = ON
+enforce-gtid-consistency        = ON
 
 character-set-server            = utf8mb4
 collation-server                = utf8mb4_unicode_ci
 default_authentication_plugin   = mysql_native_password
+
+binlog-ignore-db                = performance_schema
+binlog-ignore-db                = information_schema
 
 innodb_file_per_table           = ON
 innodb_buffer_pool_size         = 512M
@@ -49,6 +56,7 @@ socket      = /var/run/mysqld/mysqld.sock
 datadir     = /var/lib/mysql
 
 secure-file-priv = NULL
+symbolic-links      = 0
 
 [mysqld_safe]
 !includedir /etc/mysql/conf.d/
@@ -73,4 +81,5 @@ docker run \
 	-v ${mysql_dir}/${slave_tag}.cnf:/etc/mysql/my.cnf \
 	-d \
 	--name ${name} \
+	--hostname ${name} \
 	mysql
