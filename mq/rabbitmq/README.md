@@ -29,3 +29,8 @@ RabbitMQ 底层是通过 Erlang 架构来实现的，所以 rabbitmqctl 会启�
 - **镜像模式**: 将需要消费的队列变为镜像队列，存在于多个节点，这样就可以实现 RabbitMQ 的 HA 高可用性。作用就是消息实体会主动在镜像节点之间实现同步，而不是像普通模式那样，在 consumer 消费数据时临时读取。缺点就是，集群内部的同步通讯会占用大量的网络带宽。
 
 ## 搭建 RabbitMQ Server 高可用集群
+
+
+
+
+scp -rp -C /home/root/rabbitmq/data/.erlang.cookie root@192.168.1.81:/home/root/rabbitmq/data/.erlang.cookie
