@@ -3,7 +3,7 @@
 set -e
 
 # Docker
-name=rabbitmq_node2
+name=rabbitmq-node1
 admin_port=15672                # 控制台端口
 visit_port=5672                 # 业务端口
 RABBITMQ_DEFAULT_USER=admin
@@ -22,8 +22,8 @@ mkdir -p ${conf} ${data} ${logs} ${host}
 
 # cluster
 echo '
-192.168.1.80    rabbitmq_node1
-192.168.1.81    rabbitmq_node2
+rabbitmq-node1  10.10.10.10
+rabbitmq-node2  10.10.10.20
 127.0.0.1       '${name}'
 ::1             '${name}'
 
