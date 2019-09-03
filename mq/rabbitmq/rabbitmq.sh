@@ -9,10 +9,13 @@ visit_port=5672                 # 业务端口
 RABBITMQ_DEFAULT_USER=admin
 RABBITMQ_DEFAULT_PASS=admin
 
+# rabbitmq
+erlang_cookie=ERLANGCOOKIE
+
 # config
 rabbitmq_dir=/home/root/rabbitmq
 
-conf=${rabbitmq_dir}/conf
+# conf=${rabbitmq_dir}/conf
 data=${rabbitmq_dir}/data
 logs=${rabbitmq_dir}/logs
 host=${rabbitmq_dir}/host
@@ -20,18 +23,14 @@ host=${rabbitmq_dir}/host
 rm -rf ${rabbitmq_dir}
 mkdir -p ${conf} ${data} ${logs} ${host}
 
-# cluster
+# hosts
 echo '
-rabbitmq-node1  10.10.10.10
-rabbitmq-node2  10.10.10.20
-127.0.0.1       '${name}'
-::1             '${name}'
+10.10.10.10 rabbitmq-node1
+10.10.10.20 rabbitmq-node2
+127.0.0.1   localhost
+::1         localhost
 
 ' > ${host}/hosts
-
-echo '
-[rabbitmq_management].
-' > ${conf}/enabled_plugins
 
 container_id=$(docker ps -a | grep ${name} | awk '{print $1}')
 if [ ${#container_id} -ne 0 ]
