@@ -1,0 +1,25 @@
+- 备份数据
+	mysqldump -uroot -p123456 -h127.0.0.1 -P3306 --quick --extended-insert --single-transaction -A > $(date +%Y-%m-%d_%H:%M:%S).sql
+	备注:
+		--host=127.0.0.1 [-h127.0.0.1]		指定 MySQL 服务器
+		--port=3306 [-P3306]				用于连接的 TCP/IP 端口号。
+		--single-transaction				事物一致性。
+		--quick								用于转储数据较大的表。它强制 mysqldump 从服务器逐行检索表中的数据并直接输出, 而不是检索所有的行并在输出前保存在内存中。
+		--extended-insert [-e]				使用包括几个VALUES列表的多行INSERT语法。
+		--no-data [-d]						只存储表结构
+		--all--databases [-A]				所有数据库中的所有表。
+		--databases [-B]                    指定数据库, 多个数据库用空格分开。
+		--flush-logs [-F]					转储前刷新 bin.log 文件(需要 RELOAD 权限并开启 log-bin )。
+		--master-data						将 bin.log 的位置和文件名写入到输出中(需要 RELOAD 权限并开启 log-bin )。
+		--compress [-C]						压缩在客户端和服务器之间发送的所有信息。
+		--default-character-set=utf8mb4		默认字符集, mysqldump 默认使用 utf8 。
+		--max_allowed_packet=XXX			客户端/服务器之间通信的缓存区的最大大小(不能大于数据库内设值[ show variables like 'max_allowed_packet'; ])。
+		--net_buffer_length=XXX				客户端/服务器之间通信的缓存区的初始大小(不能大于数据库内设值[ show variables like 'net_buffer_length'; ])。
+
+- 远程同步
+	mysqldump -uroot -p123456 -hsource_host -P3306 -A | mysql -uroot -p123456 -htarget_host -P3306 -A -C
+	mysqldump -uroot -p123456 -hsource_host -P3306 -B databases | mysql -uroot -p123456 -htarget_host -P3306 databases -C
+
+- 恢复备份
+	- [root@localhost ~]# mysql -uroot -p123456 -h127.0.0.1 -P3306 < mysql.sql
+	- [root@localhost ~]# mysqlimport -uroot -p123456 -h127.0.0.1 -P3306 --local mysql.sql
