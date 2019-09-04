@@ -81,4 +81,4 @@ docker run \
 	-d \
 	--name ${name} \
 	--hostname ${name} \
-	mysql
+	mysql:5.7.27
