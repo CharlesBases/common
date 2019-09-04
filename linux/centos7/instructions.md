@@ -39,3 +39,25 @@
 重启网络
 [root@centos 7]# service network restart
 ```
+
+# 用户
+### root
+```
+- 修改密码
+[root@centos 7]# passwd root
+- 修改主机名
+[root@centos 7]# hostnamectl set-hostname locahost
+- 创建用户
+[root@centos 7]# useradd -d /home/user -m user
+- 删除用户
+[root@centos 7]# userdel -r user
+```
+### user
+```
+- 激活 root 用户
+[user@centos 7]# sudo passwd
+- 切换 root 用户
+[user@centos 7]# su
+- 切换用户
+[user@centos 7]# su user
+```
