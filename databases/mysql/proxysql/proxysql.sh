@@ -8,9 +8,9 @@ mysql_port=6033     # ProxySQL 业务端口( 用于连接 MySQL )
 # ProxySQL
 proxysql_admin=administrator                    # ProxySQL admin 凭证
 proxysql_admin_password=administrator
-proxysql_writer_server=192.168.1.80              # MySQL master 服务器
+proxysql_writer_server=10.10.10.10              # MySQL master 服务器
 proxysql_writer_server_port=3306
-proxysql_reader_server=192.168.1.81              # MySQL slave 服务器
+proxysql_reader_server=10.10.10.20              # MySQL slave 服务器
 proxysql_reader_server_port=3306
 proxysql_master_writer=proxysql                 # MySQL master 业务账户(用于写数据，以及 slave 崩溃时读数据)
 proxysql_master_writer_password=proxysql
