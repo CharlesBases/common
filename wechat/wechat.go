@@ -3,7 +3,7 @@ package wechat
 import (
 	"fmt"
 
-	"github.com/CharlesBases/common/db"
+	"github.com/CharlesBases/common/databases/redis"
 	"github.com/CharlesBases/common/web/request"
 )
 
@@ -29,8 +29,9 @@ func GetWeChat() *Wechat {
 }
 
 func (wechat *Wechat) getAccessToken() (string, bool) {
-	Redis := db.GetRedis(address)
-	if accessToken, err := Redis.Get("authorizer_access_token"); err == nil {
+	Redis := redis.GetRedis(address)
+	var accessToken string
+	if err := Redis.Get(redis.HASH, "authorizer_access_token", &accessToken); err == nil {
 		if checkAccessToken(accessToken) {
 			return accessToken, true
 		}
@@ -39,7 +40,7 @@ func (wechat *Wechat) getAccessToken() (string, bool) {
 		if resp.Body["errcode"] != nil {
 			return fmt.Sprintf(`%v`, resp.Body["errcode"]), false
 		} else {
-			Redis.Set("authorizer_access_token", resp.Body["access_token"])
+			Redis.Set(redis.HASH, "authorizer_access_token", resp.Body["access_token"])
 			return resp.Body["access_token"].(string), true
 		}
 	}
