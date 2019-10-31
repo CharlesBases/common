@@ -3,10 +3,12 @@ package redis
 import (
 	"fmt"
 	"testing"
+
+	"github.com/CharlesBases/common/log"
 )
 
 var (
-	addr = "192.168.1.88:6379"
+	addr = "192.168.1.174:6379"
 )
 
 type Peo struct {
@@ -15,50 +17,53 @@ type Peo struct {
 }
 
 func TestRedis(t *testing.T) {
+	defer log.Flush()
+	var err error
+
 	Redis := GetRedis(addr)
+
 	// ++++++++++++++++++++++ //
-	err := Redis.Set("name", "张三")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	str, err := Redis.Get("name")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println("name:  ", str)
-	Redis.Del("name")
+	// err = Redis.Set(STRING, "name", "张三")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	//
+	// var name string
+	// err = Redis.Get(STRING, "name", &name)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	// fmt.Println(name)
+
 	// ++++++++++++++++++++++ //
-	err = Redis.Set("peo", &Peo{"李四", 18})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	var peo Peo
-	_, err = Redis.Get("peo", &peo)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println("peo:   ", peo)
-	Redis.Del("peo")
+	// err = Redis.Set(HASH, "peo", &Peo{
+	// 	Name: "张三",
+	// 	Age:  18,
+	// }, 1)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+
+	// var peo Peo
+	// fmt.Println(Redis.Exists("peo"))
+	// err = Redis.Get(HASH, "peo", &peo)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	// fmt.Println(peo)
+
 	// ++++++++++++++++++++++ //
-	err = Redis.Set("name", "李四", 5)
+	err = Redis.Del("a")
 	if err != nil {
 		fmt.Println(err)
-		return
 	}
-	str, err = Redis.Get("name")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println("name:  ", str)
-	Redis.Del("name")
 }
 
-func TestRedisPoll(t *testing.T) {
+/*func TestRedisPoll(t *testing.T) {
 
 	redisPoll := GetRedisPool()
 	defer redisPoll.Close()
@@ -78,4 +83,4 @@ func TestRedisPoll(t *testing.T) {
 	}
 	fmt.Println("name:  ", str)
 	redisClient.Del("name")
-}
+}*/

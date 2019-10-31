@@ -2,60 +2,154 @@ package redis
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"sync"
+	"time"
 
-	"github.com/gomodule/redigo/redis"
+	"github.com/go-redis/redis"
 
 	"github.com/CharlesBases/common/log"
 )
 
+const (
+	STRING = iota + 1
+	HASH
+	LIST
+	SET
+	ZSET
+)
+
+var (
+	wg sync.WaitGroup
+)
+
 type Redis struct {
-	redis.Conn
+	client *redis.Client
 }
 
 func GetRedis(address string) *Redis {
-	conn, err := redis.Dial("tcp", address)
-	if err != nil || conn == nil {
-		log.Error(" - Redis连接失败 - ", err.Error())
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: address,
+	})
+	return &Redis{client: redisClient}
+}
+
+func (r *Redis) Set(DataType int, key string, value interface{}, seconds ...int64) error {
+	args := make([]interface{}, 0)
+	switch DataType {
+	case STRING:
+		args = append(args,
+			"SET",
+			key,
+			func() []byte {
+				bytes, _ := json.Marshal(value)
+				return bytes
+			}())
+
+		for _, second := range seconds {
+			args = append(args,
+				"EX",
+				strconv.FormatInt(second, 10))
+			break
+		}
+
+		return r.client.Do(args...).Err()
+	case HASH:
+		args = append(args,
+			"HMSET",
+			key,
+			key,
+			func() []byte {
+				bytes, _ := json.Marshal(value)
+				return bytes
+			}())
+
+		if err := r.client.Do(args...).Err(); err != nil {
+			return err
+		}
+
+		for _, second := range seconds {
+			go func() {
+				err := r.Expire(key, second)
+				if err != nil {
+					log.Error(fmt.Sprintf("redis expire err: [key: %s] >> %s", key, err.Error()))
+				}
+			}()
+			break
+		}
+
 		return nil
+	case LIST:
+	case SET:
+	case ZSET:
 	}
-	return &Redis{conn}
+
+	return fmt.Errorf(fmt.Sprintf("redis data type unknown: %d", DataType))
 }
 
-func (r *Redis) SetKeyExpire(key string, seconds int) error {
-	_, err := r.Do("EXPIRE", key, seconds)
-	return err
+func (r *Redis) Get(DataType int, key string, value interface{}) error {
+	switch DataType {
+	case STRING:
+		bytes, err := r.client.Get(key).Bytes()
+		if err != nil {
+			log.Error(fmt.Sprintf("redis get error: [key: %s] >> %s", key, err.Error()))
+			return err
+		}
+		return json.Unmarshal(bytes, value)
+	case HASH:
+		result, err := r.client.HGetAll(key).Result()
+		if err != nil {
+			log.Error(fmt.Sprintf("redis get error: [key: %s] >> %s", key, err.Error()))
+			return err
+		}
+		return json.Unmarshal([]byte(result[key]), value)
+	case LIST:
+	case SET:
+	case ZSET:
+	}
+	return fmt.Errorf(fmt.Sprintf("redis data type unknown: %d", DataType))
 }
 
-func (r *Redis) Set(key string, value interface{}, seconds ...int) error {
-	bs, err := json.Marshal(value)
-	if err != nil {
-		return err
+func (r *Redis) Exists(key string) bool {
+	isExist := r.client.Exists(key).Val()
+	if isExist != 0 {
+		return true
 	}
-	args := []interface{}{
-		key,
-		string(bs),
-	}
-	for _, v := range seconds {
-		args = append(args, "EX")
-		args = append(args, strconv.Itoa(v))
-	}
-	_, err = r.Do("SET", args...)
-	return err
+	return false
 }
 
-func (r *Redis) Get(key string, values ...interface{}) (string, error) {
-	jsonStr, err := redis.String(r.Do("GET", key))
-	if err != nil {
-		return "", err
-	}
-	for k := range values {
-		return "", json.Unmarshal([]byte(jsonStr), values[k])
-	}
-	return jsonStr, err
+func (r *Redis) Expire(key string, second int64) error {
+	return r.client.Do("EXPIRE", key, second).Err()
 }
 
-func (r *Redis) Del(key string) error {
-	_, err := r.Do("DEL", key)
-	return err
+func (r *Redis) Del(key string) (delerr error) {
+	// return r.client.Unlink(key...).Err()
+
+	wg.Add(1)
+
+	go func() {
+		newkey := fmt.Sprintf("%s_delete_%d", key, time.Now().UnixNano())
+		err := r.client.RenameNX(key, newkey).Err()
+		if err != nil {
+			delerr = fmt.Errorf("redis delete[renamenx] err: [key: %s] >> %s", key, err.Error())
+		} else {
+			go func() {
+				if err := r.client.Del(newkey).Err(); err != nil {
+					log.Error(fmt.Sprintf("redis delete[delete] err: [key: %s] >> %s", newkey, err.Error()))
+				}
+			}()
+		}
+
+		wg.Done()
+
+	}()
+
+	wg.Wait()
+
+	return
+}
+
+func (r *Redis) Close() error {
+	return r.client.Close()
 }
