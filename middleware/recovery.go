@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -16,7 +15,7 @@ const (
 )
 
 var (
-	errAbort = errors.New("user stop run")
+	usererror = "user stop run" // 主动结束
 )
 
 type PanicRecover struct {
@@ -29,8 +28,7 @@ type PanicRecover struct {
 func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	defer func() {
 		if err := recover(); err != nil {
-			if err == errAbort {
-				// 用户主动结束
+			if fmt.Sprintf("%v", err) == usererror {
 				return
 			}
 
@@ -41,8 +39,7 @@ func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 			if rec.PrintStack {
 				infor.Stack = stack
 			}
-
-			log.Errorf("Panic - RequestInfo = %s ; Err = %s ; StackInfo = %s", infor.RequestDescription(), infor.RecoveredPanic, infor.StackAsString())
+			log.Errorf("Panic: [%s]\nRequestInfo: [%s]\nStackInfo:   %s", infor.RecoveredPanic, infor.RequestDescription(), infor.StackAsString())
 
 			if rec.PanicHandlerFunc != nil {
 				func() {
@@ -61,8 +58,8 @@ func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 				code int
 				msg  string
 			}{
-				521,
-				"服务器错误",
+				20165000,
+				"系统错误",
 			})
 			rw.Write(msg)
 		}
