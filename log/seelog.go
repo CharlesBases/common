@@ -28,7 +28,7 @@ func init() {
 					<filter levels="error,critical">
 						<console formatid="error"/>
 					</filter>
-					<rollingfile formatid="main" type="date" filename="./log/seelog.log" datepattern="2006.01.02" maxrolls="90" namemode="prefix"/>
+					<rollingfile formatid="main" type="date" filename="./log/seelog.log" datepattern="2006-01-02" maxrolls="30" namemode="prefix"/>
 				</outputs>
 				<formats>
 					<format id="main" format="[%Date(2006-01-02 15:04:05.000)][%LEV] %Func %File:%Line ==&gt; %Msg%n"/>
