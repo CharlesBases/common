@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"runtime"
 	"runtime/debug"
+	"sync"
 
 	"github.com/CharlesBases/common/log"
 )
@@ -14,8 +15,20 @@ const (
 	nilRequestMessage = "Request is nil"
 )
 
+const (
+	UserErrorStopRun = "user stop run"
+	UserErrorMySQL   = "mysql connect error"
+	UserErrorRedis   = "redis connect error"
+	UserErrorNSQ     = "nsq connect error"
+)
+
 var (
-	usererror = "user stop run" // 主动结束
+	usererror = map[string]interface{}{
+		UserErrorStopRun: nil,
+		UserErrorMySQL:   nil,
+		UserErrorRedis:   nil,
+		UserErrorNSQ:     nil,
+	}
 )
 
 type PanicRecover struct {
@@ -25,10 +38,38 @@ type PanicRecover struct {
 	PanicHandlerFunc func(*PanicInformation)
 }
 
+func Recovery() *PanicRecover {
+	return &PanicRecover{
+		PrintStack: true,
+		StackAll:   false,
+		StackSize:  1024 * 8,
+	}
+}
+
 func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	defer func() {
 		if err := recover(); err != nil {
-			if fmt.Sprintf("%v", err) == usererror {
+
+			swg := sync.WaitGroup{}
+			swg.Add(1)
+			defer swg.Wait()
+
+			go func() {
+				defer swg.Done()
+
+				rw.WriteHeader(http.StatusInternalServerError)
+				weberror := map[string]interface{}{
+					"errNo":  500,
+					"errMsg": "系统错误",
+				}
+				responsedatas, _ := json.MarshalIndent(weberror, "", "    ")
+				log.Debug(fmt.Sprintf("\nResponse:\n%s", string(responsedatas)))
+				rw.Write(responsedatas)
+
+			}()
+
+			if err, ok := usererror[fmt.Sprintf("%v", err)]; ok {
+				log.Errorf("Panic: [%s]", err)
 				return
 			}
 
@@ -52,43 +93,21 @@ func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 					rec.PanicHandlerFunc(infor)
 				}()
 			}
-
-			rw.WriteHeader(http.StatusInternalServerError)
-			msg, _ := json.Marshal(&struct {
-				code int
-				msg  string
-			}{
-				20165000,
-				"系统错误",
-			})
-			rw.Write(msg)
 		}
 	}()
 	next(rw, r)
 }
 
-func Recovery() *PanicRecover {
-	return &PanicRecover{
-		PrintStack: true,
-		StackAll:   false,
-		StackSize:  1024 * 8,
-	}
-}
-
-// PanicInformation contains all
-// elements for printing stack informations.
 type PanicInformation struct {
 	RecoveredPanic interface{}
 	Stack          []byte
 	Request        *http.Request
 }
 
-// StackAsString returns a printable version of the stack
 func (p *PanicInformation) StackAsString() string {
 	return string(p.Stack)
 }
 
-// RequestDescription returns a printable description of the url
 func (p *PanicInformation) RequestDescription() string {
 	if p.Request == nil {
 		return nilRequestMessage
