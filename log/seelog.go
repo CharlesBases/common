@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"runtime/debug"
 
 	"github.com/cihub/seelog"
@@ -40,7 +41,7 @@ func init() {
 	} else {
 		seelog.Infof("using seelog configed from %s", defaultSeelogConfig)
 	}
-	logger.SetAdditionalStackDepth(0)
+	logger.SetAdditionalStackDepth(2)
 	seelog.ReplaceLogger(logger)
 }
 
@@ -84,22 +85,12 @@ func Errorf(format string, params ...interface{}) {
 	seelog.Errorf(format, params...)
 }
 
-func Fatal(v ...interface{}) {
-	seelog.Critical(v...)
-}
-
-func Fatalf(format string, params ...interface{}) {
-	seelog.Criticalf(format, params...)
-}
-
 func Critical(v ...interface{}) {
-	v = append(v, string(debug.Stack()))
-	seelog.Critical(v...)
+	seelog.Critical(append(v, string(debug.Stack()))...)
 }
 
 func Criticalf(format string, params ...interface{}) {
-	format += string(debug.Stack())
-	seelog.Criticalf(format, params...)
+	seelog.Criticalf(fmt.Sprintf("%s\n%s", format, string(debug.Stack())), params...)
 }
 
 func Flush() {
