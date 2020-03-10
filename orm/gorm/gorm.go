@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	DB *gorm.DB
+	orm *gorm.DB
 
 	debug           = false
 	maxIdleConns    = 2000
@@ -19,15 +19,11 @@ var (
 	connMaxLifetime = 10
 )
 
-func InitGorm(database string) {
-	initMySql(database)
-}
-
-func initMySql(database string) {
-	db, err := gorm.Open("mysql", database)
+func init() {
+	db, err := gorm.Open("mysql", addr())
 	if err != nil {
-		log.Error(fmt.Sprintf(" - db dsn(%s) error - ", database), err.Error())
-		return
+		log.Error(fmt.Sprintf(" - db connect(%s) error - %s", addr()), err.Error())
+		panic("user stop run")
 	}
 
 	db.DB().SetMaxIdleConns(maxIdleConns)
@@ -42,15 +38,22 @@ func initMySql(database string) {
 
 	// db.Exec("set sql_mode=(select replace(@@sql_mode,'ONLY_FULL_GROUP_BY',''))")
 
-	if DB != nil {
-		DB.Close()
+	if orm != nil {
+		orm.Close()
 	}
 
-	DB = db
+	orm = db
 }
 
-type Logger struct {
+func Gorm() *gorm.DB {
+	return orm
 }
+
+func addr() string {
+	return ""
+}
+
+type Logger struct{}
 
 func (l *Logger) Print(v ...interface{}) {
 	log.Debug("SQL - ", v)
