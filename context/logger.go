@@ -12,7 +12,7 @@ type logger struct {
 }
 
 func newlogger() *logger {
-	return &logger{trace: fmt.Sprintf("[traceID: %s] ", algo.GetTraceID())}
+	return &logger{trace: fmt.Sprintf("[traceID: %s]", algo.GetTraceID())}
 }
 
 func (logger *logger) Debug(value ...interface{}) {
@@ -20,7 +20,7 @@ func (logger *logger) Debug(value ...interface{}) {
 }
 
 func (logger *logger) Debugf(format string, value ...interface{}) {
-	log.Debugf(fmt.Sprintf("%s%s", logger.trace, format), value...)
+	log.Debugf(fmt.Sprintf("%s %s", logger.trace, format), value...)
 }
 
 func (logger *logger) Info(value ...interface{}) {
@@ -28,7 +28,7 @@ func (logger *logger) Info(value ...interface{}) {
 }
 
 func (logger *logger) Infof(format string, value ...interface{}) {
-	log.Infof(fmt.Sprintf("%s%s", logger.trace, format), value...)
+	log.Infof(fmt.Sprintf("%s %s", logger.trace, format), value...)
 }
 
 func (logger *logger) Warn(value ...interface{}) {
@@ -36,7 +36,7 @@ func (logger *logger) Warn(value ...interface{}) {
 }
 
 func (logger *logger) Warnf(format string, value ...interface{}) {
-	log.Warnf(fmt.Sprintf("%s%s", logger.trace, format), value...)
+	log.Warnf(fmt.Sprintf("%s %s", logger.trace, format), value...)
 }
 
 func (logger *logger) Error(value ...interface{}) {
@@ -44,7 +44,7 @@ func (logger *logger) Error(value ...interface{}) {
 }
 
 func (logger *logger) Errorf(format string, value ...interface{}) {
-	log.Errorf(fmt.Sprintf("%s%s", logger.trace, format), value...)
+	log.Errorf(fmt.Sprintf("%s %s", logger.trace, format), value...)
 }
 
 func (logger *logger) Critical(value ...interface{}) {
@@ -52,7 +52,7 @@ func (logger *logger) Critical(value ...interface{}) {
 }
 
 func (logger *logger) Criticalf(format string, value ...interface{}) {
-	log.Criticalf(fmt.Sprintf("%s%s", logger.trace, format), value...)
+	log.Criticalf(fmt.Sprintf("%s %s", logger.trace, format), value...)
 }
 
 func (logger *logger) flush() {

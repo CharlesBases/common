@@ -45,48 +45,73 @@ func init() {
 	seelog.ReplaceLogger(logger)
 }
 
-func Trace(v ...interface{}) {
-	seelog.Trace(v...)
+func Trace(vs ...interface{}) {
+	values := make([]interface{}, 0)
+	for _, v := range vs {
+		values = append(values, v, " ")
+	}
+	seelog.Trace(values...)
 }
 
 func Tracef(format string, params ...interface{}) {
 	seelog.Tracef(format, params...)
 }
 
-func Debug(v ...interface{}) {
-	seelog.Debug(v...)
+func Debug(vs ...interface{}) {
+	values := make([]interface{}, 0)
+	for _, v := range vs {
+		values = append(values, v, " ")
+	}
+	seelog.Debug(values...)
 }
 
 func Debugf(format string, params ...interface{}) {
 	seelog.Debugf(format, params...)
 }
 
-func Info(v ...interface{}) {
-	seelog.Info(v...)
+func Info(vs ...interface{}) {
+	values := make([]interface{}, 0)
+	for _, v := range vs {
+		values = append(values, v, " ")
+	}
+	seelog.Info(values...)
 }
 
 func Infof(format string, params ...interface{}) {
 	seelog.Infof(format, params...)
 }
 
-func Warn(v ...interface{}) {
-	seelog.Warn(v...)
+func Warn(vs ...interface{}) {
+	values := make([]interface{}, 0)
+	for _, v := range vs {
+		values = append(values, v, " ")
+	}
+	seelog.Warn(values...)
 }
 
 func Warnf(format string, params ...interface{}) {
 	seelog.Warnf(format, params...)
 }
 
-func Error(v ...interface{}) {
-	seelog.Error(v...)
+func Error(vs ...interface{}) {
+	values := make([]interface{}, 0)
+	for _, v := range vs {
+		values = append(values, v, " ")
+	}
+	seelog.Error(values...)
 }
 
 func Errorf(format string, params ...interface{}) {
 	seelog.Errorf(format, params...)
 }
 
-func Critical(v ...interface{}) {
-	seelog.Critical(append(v, string(debug.Stack()))...)
+func Critical(vs ...interface{}) {
+	values := make([]interface{}, 0)
+	for _, v := range vs {
+		values = append(values, v, " ")
+	}
+	values = append(values, "\n", string(debug.Stack()))
+	seelog.Critical(values...)
 }
 
 func Criticalf(format string, params ...interface{}) {
