@@ -3,7 +3,7 @@ package request
 import (
 	"testing"
 
-	"github.com/CharlesBases/common/log"
+	"charlesbases/common/log"
 )
 
 var (

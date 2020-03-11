@@ -8,7 +8,7 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"github.com/CharlesBases/common/log"
+	"charlesbases/common/log"
 )
 
 const (

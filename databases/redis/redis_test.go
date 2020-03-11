@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/CharlesBases/common/log"
+	"charlesbases/common/log"
 )
 
 var (

@@ -11,7 +11,7 @@ import (
 	"github.com/dgrijalva/jwt-go/request"
 	"github.com/urfave/negroni"
 
-	"github.com/CharlesBases/common/log"
+	"charlesbases/common/log"
 )
 
 var (

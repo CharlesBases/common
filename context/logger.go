@@ -3,8 +3,8 @@ package context
 import (
 	"fmt"
 
-	"github.com/CharlesBases/common/algo"
-	"github.com/CharlesBases/common/log"
+	"charlesbases/common/algo"
+	"charlesbases/common/log"
 )
 
 type logger struct {

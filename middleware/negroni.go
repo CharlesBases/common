@@ -8,7 +8,7 @@ import (
 
 	"github.com/urfave/negroni"
 
-	seelog "github.com/CharlesBases/common/log"
+	seelog "charlesbases/common/log"
 )
 
 var (

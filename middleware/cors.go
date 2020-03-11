@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/CharlesBases/common/log"
+	"charlesbases/common/log"
 )
 
 const (

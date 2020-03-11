@@ -3,8 +3,8 @@ package wechat
 import (
 	"fmt"
 
-	"github.com/CharlesBases/common/databases/redis"
-	"github.com/CharlesBases/common/web/request"
+	"charlesbases/common/databases/redis"
+	"charlesbases/common/web/request"
 )
 
 var (
