@@ -36,7 +36,7 @@ func TestContext(t *testing.T) {
 		defer waitgroup.Done()
 
 		context.logger.Error("error", "error")
-		context.logger.Errorf("errorf %s", "warn")
+		context.logger.Errorf("errorf %s", "errorf")
 	}()
 
 	go func() {
