@@ -5,7 +5,7 @@ import (
 
 	mq "github.com/streadway/amqp"
 
-	"charlesbases/common/log"
+	"github.com/CharlesBases/common/log"
 )
 
 const (

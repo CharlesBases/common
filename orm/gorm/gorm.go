@@ -7,7 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 
-	"charlesbases/common/log"
+	"github.com/CharlesBases/common/log"
 )
 
 var (

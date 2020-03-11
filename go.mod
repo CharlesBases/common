@@ -1,4 +1,4 @@
-module charlesbases/common
+module github.com/CharlesBases/common
 
 go 1.13
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-redis/redis"
 
-	"charlesbases/common/log"
+	"github.com/CharlesBases/common/log"
 )
 
 const (
