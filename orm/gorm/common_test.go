@@ -1,21 +1,18 @@
 package gorm
 
 import (
-	"fmt"
 	"testing"
 )
 
 func TestBind(t *testing.T) {
 	param := map[string]interface{}{
 		"select":  []string{"id", "name"},
-		"id":      10086,
-		"name":    `like "%中国%"`,
-		"status":  "<> 3",
-		"orderby": "id DESC",
+		"id":      "in (1, 2, 3)",
+		"name":    `like "%张%"`,
+		"sex":     "<> 3",
+		"height":  175,
 		"groupby": "name",
-		"limit":   1,
-		"offset":  1,
+		"orderby": "id DESC",
 	}
-	summary := Bind(param)
-	fmt.Println(summary)
+	new(GormDao).bind(param)
 }
