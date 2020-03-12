@@ -3,7 +3,7 @@ package gorm
 import "github.com/jinzhu/gorm"
 
 func Transaction(fs ...func(tx *gorm.DB) error) error {
-	tx := DB.Begin()
+	tx := Gorm().Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()

@@ -22,7 +22,7 @@ var (
 func init() {
 	db, err := gorm.Open("mysql", addr())
 	if err != nil {
-		log.Error(fmt.Sprintf(" - db connect(%s) error - %s", addr()), err.Error())
+		log.Error(fmt.Sprintf(" - db connect(%s) error - %s", addr(), err.Error()))
 		panic("user stop run")
 	}
 
