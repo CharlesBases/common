@@ -41,7 +41,7 @@ func init() {
 	} else {
 		seelog.Infof("using seelog configed from %s", defaultSeelogConfig)
 	}
-	logger.SetAdditionalStackDepth(2)
+	logger.SetAdditionalStackDepth(1)
 	seelog.ReplaceLogger(logger)
 }
 

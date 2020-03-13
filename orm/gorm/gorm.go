@@ -56,5 +56,16 @@ func addr() string {
 type Logger struct{}
 
 func (l *Logger) Print(v ...interface{}) {
-	log.Debug("SQL - ", v)
+	if len(v) != 0 {
+		switch v[0] {
+		case "log":
+			log.Errorf("MySQL >>> \npath: %v\nerr : %v", v[1], v[2])
+		case "sql":
+			log.Debugf("MySQL >>> \npath: %v\nsql : %v | %v | %v | %v", v[1], v[3], v[4], v[5], v[2])
+		case "info":
+			log.Info("SQL - ", v)
+		case "warn":
+			log.Warn("SQL - ", v)
+		}
+	}
 }
