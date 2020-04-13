@@ -58,14 +58,28 @@ type Logger struct{}
 func (l *Logger) Print(v ...interface{}) {
 	if len(v) != 0 {
 		switch v[0] {
-		case "log":
-			log.Errorf("MySQL >>> \npath: %v\nerr : %v", v[1], v[2])
 		case "sql":
-			log.Debugf("MySQL >>> \npath: %v\nsql : %v | %v | %v | %v", v[1], v[3], v[4], v[5], v[2])
+			if len(v) == 6 {
+				log.Debugf("MySQL >>>\npath: %v\nsql : %v | %v | %v | %v", v[1], v[3], v[4], v[5], v[2])
+				return
+			}
+		case "log":
+			if len(v) == 3 {
+				log.Errorf("MySQL >>>\npath: %v\nerr : %v", v[1], v[2])
+				return
+			}
 		case "info":
-			log.Info("SQL - ", v)
+			if len(v) == 2 {
+				log.Infof("MySQL >>>\ninfo: %v", v[1])
+				return
+			}
 		case "warn":
-			log.Warn("SQL - ", v)
+			if len(v) == 2 {
+				log.Warnf("MySQL >>>\nwarn: %v", v[1])
+				return
+			}
 		}
+
+		log.Debug("MySQL >>>", v)
 	}
 }
