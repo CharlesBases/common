@@ -7,17 +7,13 @@ import (
 	"time"
 )
 
-var (
-	SecretKey = "shdkkj&(hkdksaYKBKDJah890uiojoiu0KNKSAdhka892hkj!@kndsajhd"
-)
-
 func TestAuth(t *testing.T) {
 	user := User{
-		UserId:    1,
+		UserID:    1,
 		Timestamp: time.Now().UnixNano(),
 	}
 
-	token, err := GenToken(SecretKey, time.Hour*1, &user)
+	token, err := GenToken(&user)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(0)

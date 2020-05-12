@@ -16,9 +16,10 @@ func init() {
 func Run() {
 	n := negroni.New()
 
-	n.Use(NegroniLogger())
 	n.Use(Recovery())
+	n.Use(NegroniLogger())
 	n.UseFunc(negroni.HandlerFunc(Cors()))
+	n.UseFunc(negroni.HandlerFunc(JWT()))
 
 	n.UseHandler(router)
 

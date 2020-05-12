@@ -114,7 +114,7 @@ func (p *PanicInformation) RequestDescription() string {
 	}
 
 	var queryOutput string
-	if p.Request.URL.RawQuery != "" {
+	if len(p.Request.URL.RawQuery) != 0 {
 		queryOutput = "?" + p.Request.URL.RawQuery
 	}
 	return fmt.Sprintf("%s %s%s", p.Request.Method, p.Request.URL.Path, queryOutput)

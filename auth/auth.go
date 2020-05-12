@@ -8,11 +8,29 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go/request"
 	"github.com/gomodule/redigo/redis"
 )
 
+const (
+	SecretKey = "shdkkj&(hkdksaYKBKDJah890uiojoiu0KNKSAdhka892hkj!@kndsajhd"
+	Duration  = 4 * time.Hour
+)
+
+type (
+	User struct {
+		UserID    uint64 `json:"user_id"`
+		Timestamp int64  `json:"timestamp"`
+	}
+
+	jwtClaims struct {
+		User User
+		jwt.StandardClaims
+	}
+)
+
 func GetUser(r *http.Request) (userId int, err error) {
-	value := r.FormValue("userId")
+	value := r.FormValue("user_id")
 	userId, err = strconv.Atoi(fmt.Sprintf(`%v`, value))
 	if err != nil {
 		return -1, errors.New("userId has no value in http request context")
@@ -21,23 +39,31 @@ func GetUser(r *http.Request) (userId int, err error) {
 }
 
 // generate token
-func GenToken(SecretKey string, duration time.Duration, user *User) (string, error) {
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(map[string]interface{}{
-		"iat":  time.Now().Unix(),
-		"exp":  time.Now().Add(duration).Unix(),
-		"user": user,
-	})).SignedString([]byte(SecretKey))
+func GenToken(user *User) (string, error) {
+	return jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwt.MapClaims(map[string]interface{}{
+			// "iat":  time.Now().Unix(),
+			// "exp":  time.Now().Add(Duration).Unix(),
+			"user": user,
+		}),
+	).SignedString([]byte(SecretKey))
 }
 
 // parse token
-func ParToken(SecretKey string, tokenString string) (*User, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(SecretKey), nil
-	})
+func ParToken(r *http.Request) (*User, error) {
+	token, err := request.ParseFromRequest(
+		r,
+		request.AuthorizationHeaderExtractor,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(SecretKey), nil
+		},
+	)
 	if err == nil {
-		if token.Valid {
+		switch token.Valid {
+		case true:
 			return &token.Claims.(*jwtClaims).User, nil
-		} else {
+		case false:
 			return nil, errors.New("token is not valid")
 		}
 	}
@@ -48,7 +74,7 @@ func ParToken(SecretKey string, tokenString string) (*User, error) {
  storage token in redis
 */
 func (user *User) GenRedisKey(prefix string) string {
-	return fmt.Sprintf("%s%s_%d", prefix, strconv.Itoa(user.UserId), user.Timestamp)
+	return fmt.Sprintf("%s%d_%d", prefix, user.UserID, user.Timestamp)
 }
 
 func SetToken(conn redis.Conn, redisKey string, value string) error {
@@ -58,4 +84,8 @@ func SetToken(conn redis.Conn, redisKey string, value string) error {
 
 func GetToken(conn redis.Conn, redisKey string) (tokenStr string, err error) {
 	return redis.String(conn.Do("GET", redisKey))
+}
+
+func VerifyToken(tokenString string) bool {
+	return true
 }
