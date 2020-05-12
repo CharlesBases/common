@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"testing"
+
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
@@ -13,7 +15,7 @@ func init() {
 	router = mux.NewRouter()
 }
 
-func Run() {
+func TestMiddleware(t *testing.T) {
 	n := negroni.New()
 
 	n.Use(Recovery())
