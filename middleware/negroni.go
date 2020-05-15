@@ -2,47 +2,39 @@ package middleware
 
 import (
 	"bytes"
-	"html/template"
 	"net/http"
+	"text/template"
 	"time"
 
 	"github.com/urfave/negroni"
 
-	seelog "github.com/CharlesBases/common/log"
+	"github.com/CharlesBases/common/log"
 )
 
 var (
-	DefaultDateFormat = "2006-01-02 15:04:05.000"
-	DefaultFormat     = "{{.StartTime}} | {{.Status}} | {{.Duration}} | {{.Hostname}} | {{.Method}} {{.Path}}"
+	defaultDateFormat = "2006-01-02 15:04:05.000"
+	defaultFormat     = "{{.StartTime}} | {{.Status}} | {{.Duration}} | {{.Hostname}} | {{.Method}} {{.Path}}"
 )
 
-type logger struct {
-	dateFormat string
-	template   *template.Template
-}
+func Negroni() func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		defer log.Flush()
 
-func NegroniLogger() *logger {
-	return &logger{
-		dateFormat: DefaultDateFormat,
-		template:   template.Must(template.New("negroni_parser").Parse(DefaultFormat)),
-	}
-}
+		start := time.Now()
+		next(rw, r)
 
-func (l *logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	defer seelog.Flush()
-	start := time.Now()
-	next(rw, r)
-	res := rw.(negroni.ResponseWriter)
-	log := negroni.LoggerEntry{
-		StartTime: start.Format(l.dateFormat),
-		Status:    res.Status(),
-		Duration:  time.Since(start),
-		Hostname:  r.Host,
-		Method:    r.Method,
-		Path:      r.URL.Path,
-		Request:   r,
+		writer := rw.(negroni.ResponseWriter)
+		logger := negroni.LoggerEntry{
+			StartTime: start.Format(defaultDateFormat),
+			Status:    writer.Status(),
+			Duration:  time.Since(start),
+			Hostname:  r.Host,
+			Method:    r.Method,
+			Path:      r.URL.Path,
+			Request:   r,
+		}
+		buff := new(bytes.Buffer)
+		template.Must(template.New("negroni_parser").Parse(defaultFormat)).Execute(buff, logger)
+		log.Info(buff.String())
 	}
-	buff := &bytes.Buffer{}
-	l.template.Execute(buff, log)
-	seelog.Info(buff.String())
 }

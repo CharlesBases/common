@@ -19,7 +19,7 @@ func TestMiddleware(t *testing.T) {
 	n := negroni.New()
 
 	n.Use(Recovery())
-	n.Use(NegroniLogger())
+	n.UseFunc(negroni.HandlerFunc(Negroni()))
 	n.UseFunc(negroni.HandlerFunc(Cors()))
 	n.UseFunc(negroni.HandlerFunc(JWT()))
 
