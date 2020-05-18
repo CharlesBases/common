@@ -11,8 +11,6 @@ import (
 	"github.com/CharlesBases/common/log"
 )
 
-var JWTConfig *jwtConfig
-
 type (
 	jwtConfig struct {
 		interceptConfig
@@ -27,30 +25,32 @@ type (
 	}
 )
 
-func JWT() func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		if JWTConfig.intercept(r) {
-			token := r.Header.Get("Authorization")
+func JWT() *jwtConfig {
+	return new(jwtConfig)
+}
 
-			user, err := auth.ParToken(r)
-			if err != nil {
-				log.Error(err)
+func (config *jwtConfig) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	if config.intercept(r) {
+		token := r.Header.Get("Authorization")
+
+		user, err := auth.ParToken(r)
+		if err != nil {
+			log.Error(err)
+			tokenError(rw)
+			return
+		}
+		if config.VerifyToken != nil {
+			if !config.VerifyToken(token) {
+				log.Warn("token logout")
 				tokenError(rw)
 				return
 			}
-			if JWTConfig.VerifyToken != nil {
-				if !JWTConfig.VerifyToken(token) {
-					log.Warn("token logout")
-					tokenError(rw)
-					return
-				}
-			}
-			next(rw, r.WithContext(context.WithValue(r.Context(), "user_id", user.UserID)))
-			return
 		}
-
-		next(rw, r)
+		next(rw, r.WithContext(context.WithValue(r.Context(), "user_id", user.UserID)))
+		return
 	}
+
+	next(rw, r)
 }
 
 func (config *jwtConfig) intercept(r *http.Request) bool {
@@ -94,8 +94,8 @@ func (config *jwtConfig) intercept(r *http.Request) bool {
 func tokenError(rw http.ResponseWriter) {
 	rw.WriteHeader(http.StatusUnauthorized)
 	data, _ := json.Marshal(map[string]interface{}{
-		"err": 401,
-		"msg": "请求错误",
+		"errNo":  401,
+		"errMsg": "请求错误",
 	})
 	rw.Write(data)
 }

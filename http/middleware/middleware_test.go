@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -19,11 +21,17 @@ func TestMiddleware(t *testing.T) {
 	n := negroni.New()
 
 	n.Use(Recovery())
-	n.UseFunc(negroni.HandlerFunc(Negroni()))
-	n.UseFunc(negroni.HandlerFunc(Cors()))
-	n.UseFunc(negroni.HandlerFunc(JWT()))
+	n.Use(Negroni())
+	n.Use(Cors())
+	n.Use(JWT())
 
 	n.UseHandler(router)
+	router.HandleFunc("/", Holle)
 
 	n.Run(":8080")
+}
+
+func Holle(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "this is home")
 }

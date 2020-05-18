@@ -31,22 +31,22 @@ var (
 	}
 )
 
-type PanicRecover struct {
+type panicRecover struct {
 	PrintStack       bool
 	StackAll         bool
 	StackSize        int
-	PanicHandlerFunc func(*PanicInformation)
+	PanicHandlerFunc func(*panicInformation)
 }
 
-func Recovery() *PanicRecover {
-	return &PanicRecover{
+func Recovery() *panicRecover {
+	return &panicRecover{
 		PrintStack: true,
 		StackAll:   false,
 		StackSize:  1024 * 8,
 	}
 }
 
-func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func (rec *panicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	defer func() {
 		if err := recover(); err != nil {
 
@@ -56,16 +56,7 @@ func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 
 			go func() {
 				defer swg.Done()
-
-				rw.WriteHeader(http.StatusInternalServerError)
-				weberror := map[string]interface{}{
-					"errNo":  500,
-					"errMsg": "系统错误",
-				}
-				responsedatas, _ := json.MarshalIndent(weberror, "", "    ")
-				log.Debug(fmt.Sprintf("\nResponse:\n%s", string(responsedatas)))
-				rw.Write(responsedatas)
-
+				systemError(rw)
 			}()
 
 			if err, ok := usererror[fmt.Sprintf("%v", err)]; ok {
@@ -75,7 +66,7 @@ func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 
 			stack := make([]byte, rec.StackSize)
 			stack = stack[:runtime.Stack(stack, rec.StackAll)]
-			infor := &PanicInformation{RecoveredPanic: err, Request: r}
+			infor := &panicInformation{RecoveredPanic: err, Request: r}
 
 			if rec.PrintStack {
 				infor.Stack = stack
@@ -95,20 +86,21 @@ func (rec *PanicRecover) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 			}
 		}
 	}()
+
 	next(rw, r)
 }
 
-type PanicInformation struct {
+type panicInformation struct {
 	RecoveredPanic interface{}
 	Stack          []byte
 	Request        *http.Request
 }
 
-func (p *PanicInformation) StackAsString() string {
+func (p *panicInformation) StackAsString() string {
 	return string(p.Stack)
 }
 
-func (p *PanicInformation) RequestDescription() string {
+func (p *panicInformation) RequestDescription() string {
 	if p.Request == nil {
 		return nilRequestMessage
 	}
@@ -118,4 +110,13 @@ func (p *PanicInformation) RequestDescription() string {
 		queryOutput = "?" + p.Request.URL.RawQuery
 	}
 	return fmt.Sprintf("%s %s%s", p.Request.Method, p.Request.URL.Path, queryOutput)
+}
+
+func systemError(rw http.ResponseWriter) {
+	rw.WriteHeader(http.StatusInternalServerError)
+	data, _ := json.Marshal(map[string]interface{}{
+		"errNo":  500,
+		"errMsg": "请求错误",
+	})
+	rw.Write(data)
 }
