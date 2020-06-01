@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/CharlesBases/common/databases/redis"
-	"github.com/CharlesBases/common/web/request"
+	"github.com/CharlesBases/common/http/web/request"
 )
 
 var (
