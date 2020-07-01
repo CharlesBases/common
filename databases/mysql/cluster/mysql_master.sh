@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 
 set -e
 
@@ -10,7 +10,7 @@ name=mysql-master
 mysql_root_password=123456
 
 # config
-mysql_dir=/Users/sun/Program/documents/mysql
+mysql_dir=/Users/sun/Program/documents/docker/volume/mysql
 master_tag=master
 
 baks=${mysql_dir}/baks
@@ -39,7 +39,7 @@ thread_stack                    = 256K
 thread_cache_size               = 8
 
 character-set-server            = utf8mb4
-collation-server                = utf8mb4_unicode_ci
+collation-server                = utf8mb4_general_ci
 default_authentication_plugin   = mysql_native_password
 
 innodb_file_per_table           = ON
@@ -78,6 +78,7 @@ docker run \
 	-v ${data}:/var/lib/mysql \
 	-v ${mysql_dir}/${master_tag}.cnf:/etc/mysql/my.cnf \
 	-d \
-	--name ${name} \
-	--hostname ${name} \
+	--name=${name} \
+	--hostname=${name} \
+	--restart=always \
 	mysql
