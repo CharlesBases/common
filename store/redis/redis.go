@@ -74,28 +74,38 @@ func (r *rkv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error
 		o(&options)
 	}
 
-	var keys []string
-
 	rkey := fmt.Sprintf("%s%s", options.Table, key)
-	// Handle Prefix
-	// TODO suffix
+
+	var keys = make(map[string]struct{}, 0)
+	keys[rkey] = struct{}{}
+
+	// Prefix
 	if options.Prefix {
-		prefixKey := fmt.Sprintf("%s*", rkey)
-		fkeys, err := r.Client.Keys(prefixKey).Result()
+		prefixKey := rkey + "*"
+		pkeys, err := r.Client.Keys(prefixKey).Result()
 		if err != nil {
 			return nil, err
 		}
-		// TODO Limit Offset
+		for _, i := range pkeys {
+			keys[i] = struct{}{}
+		}
+	}
 
-		keys = append(keys, fkeys...)
-
-	} else {
-		keys = []string{rkey}
+	// Suffix
+	if options.Suffix {
+		suffixKey := "*" + rkey
+		skeys, err := r.Client.Keys(suffixKey).Result()
+		if err != nil {
+			return nil, err
+		}
+		for _, i := range skeys {
+			keys[i] = struct{}{}
+		}
 	}
 
 	records := make([]*store.Record, 0, len(keys))
 
-	for _, rkey = range keys {
+	for rkey = range keys {
 		val, err := r.Client.Get(rkey).Bytes()
 
 		if err != nil && err == redis.Nil {
