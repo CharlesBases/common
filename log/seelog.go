@@ -85,11 +85,11 @@ func Errorf(format string, params ...interface{}) {
 	seelog.Errorf(format, params...)
 }
 
-func Critical(vs ...interface{}) {
+func Fatal(vs ...interface{}) {
 	seelog.Critical(append(vs, "\n", string(debug.Stack()))...)
 }
 
-func Criticalf(format string, params ...interface{}) {
+func Fatalf(format string, params ...interface{}) {
 	seelog.Criticalf(fmt.Sprintf("%s\n%s", format, string(debug.Stack())), params...)
 }
 
