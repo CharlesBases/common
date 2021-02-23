@@ -29,7 +29,7 @@ func NewStore(opts ...store.Option) store.Store {
 
 type rkv struct {
 	options store.Options
-	Client  *redis.Client
+	client  *redis.Client
 }
 
 func (r *rkv) configure() error {
@@ -54,7 +54,7 @@ func (r *rkv) configure() error {
 		redisOptions.Password = r.options.Password
 	}
 
-	r.Client = redis.NewClient(redisOptions)
+	r.client = redis.NewClient(redisOptions)
 	return nil
 }
 
@@ -82,7 +82,7 @@ func (r *rkv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error
 	// Prefix
 	if options.Prefix {
 		prefixKey := rkey + "*"
-		pkeys, err := r.Client.Keys(prefixKey).Result()
+		pkeys, err := r.client.Keys(prefixKey).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +94,7 @@ func (r *rkv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error
 	// Suffix
 	if options.Suffix {
 		suffixKey := "*" + rkey
-		skeys, err := r.Client.Keys(suffixKey).Result()
+		skeys, err := r.client.Keys(suffixKey).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +106,7 @@ func (r *rkv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error
 	records := make([]*store.Record, 0, len(keys))
 
 	for rkey = range keys {
-		val, err := r.Client.Get(rkey).Bytes()
+		val, err := r.client.Get(rkey).Bytes()
 
 		if err != nil && err == redis.Nil {
 			return nil, store.ErrNotFound
@@ -118,7 +118,7 @@ func (r *rkv) Read(key string, opts ...store.ReadOption) ([]*store.Record, error
 			return nil, store.ErrNotFound
 		}
 
-		d, err := r.Client.TTL(rkey).Result()
+		d, err := r.client.TTL(rkey).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -143,7 +143,7 @@ func (r *rkv) Delete(key string, opts ...store.DeleteOption) error {
 	}
 
 	rkey := fmt.Sprintf("%s%s", options.Table, key)
-	return r.Client.Del(rkey).Err()
+	return r.client.Del(rkey).Err()
 }
 
 func (r *rkv) Write(record *store.Record, opts ...store.WriteOption) error {
@@ -166,7 +166,7 @@ func (r *rkv) Write(record *store.Record, opts ...store.WriteOption) error {
 	}
 
 	rkey := fmt.Sprintf("%s%s", options.Table, record.Key)
-	return r.Client.Set(rkey, record.Value, record.TTL).Err()
+	return r.client.Set(rkey, record.Value, record.TTL).Err()
 }
 
 func (r *rkv) List(opts ...store.ListOption) ([]string, error) {
@@ -186,7 +186,7 @@ func (r *rkv) List(opts ...store.ListOption) ([]string, error) {
 		pattern = "*"
 	}
 
-	keys, err := r.Client.Keys(pattern).Result()
+	keys, err := r.client.Keys(pattern).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (r *rkv) List(opts ...store.ListOption) ([]string, error) {
 }
 
 func (r *rkv) Close() error {
-	return r.Client.Close()
+	return r.client.Close()
 }
 
 func (r *rkv) String() string {
