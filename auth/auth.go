@@ -9,7 +9,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
-	"github.com/gomodule/redigo/redis"
+	"github.com/go-redis/redis/v7"
 )
 
 const (
@@ -77,13 +77,12 @@ func (user *User) GenRedisKey(prefix string) string {
 	return fmt.Sprintf("%s%d_%d", prefix, user.UserID, user.Timestamp)
 }
 
-func SetToken(conn redis.Conn, redisKey string, value string) error {
-	_, err := conn.Do("SET", redisKey, value)
-	return err
+func SetToken(r *redis.Client, redisKey string, value string) error {
+	return r.Do("SET", redisKey, value).Err()
 }
 
-func GetToken(conn redis.Conn, redisKey string) (tokenStr string, err error) {
-	return redis.String(conn.Do("GET", redisKey))
+func GetToken(r *redis.Client, redisKey string) (tokenStr string) {
+	return r.Do("GET", redisKey).String()
 }
 
 func VerifyToken(tokenString string) bool {
