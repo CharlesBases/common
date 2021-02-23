@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"fmt"
+	"log"
 	"time"
 	"unicode"
 
@@ -9,7 +10,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/pkg/errors"
 
-	"github.com/CharlesBases/common/log"
 	"github.com/CharlesBases/common/store"
 )
 
