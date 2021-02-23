@@ -50,7 +50,7 @@ func Gorm() *gorm.DB {
 }
 
 func addr() string {
-	return "root:password@tcp(127.0.0.1:3306)/mysql"
+	return "root:password@tcp(127.0.0.1:3306)/mysql?charset=utf8mb4&parseTime=True&loc=Local"
 }
 
 type Logger struct{}
