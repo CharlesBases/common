@@ -9,6 +9,8 @@ type Options struct {
 	Prefix    string
 	Auth      bool
 	Password  string
+	// Blocked 阻塞 | 非阻塞
+	Blocked bool
 }
 
 type Option func(o *Options)
@@ -17,6 +19,21 @@ type Option func(o *Options)
 func WithAddresses(addresses ...string) Option {
 	return func(o *Options) {
 		o.Addresses = addresses
+	}
+}
+
+// WithAuth is the auth with connection
+func WithAuth(auth bool, passwd string) Option {
+	return func(o *Options) {
+		o.Auth = auth
+		o.Password = passwd
+	}
+}
+
+// WithBlocked .
+func WithBlocked() Option {
+	return func(o *Options) {
+		o.Blocked = true
 	}
 }
 

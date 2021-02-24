@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"fmt"
 	"log"
 	gosync "sync"
 	"time"
@@ -9,6 +10,9 @@ import (
 
 	"github.com/CharlesBases/common/sync"
 )
+
+// defaultFormat default format
+const defaultFormat = "2006-01-02 15:04:05"
 
 // NewStore returns a redis sync
 func NewStore(opts ...sync.Option) sync.Sync {
@@ -72,6 +76,18 @@ func (r *redisSync) configure() error {
 	return nil
 }
 
+// lock .
+func (r *redisSync) lock(id string, ttl time.Duration) bool {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	locked, err := r.client.SetNX(id, time.Now().Format(defaultFormat), ttl).Result()
+	if err != nil || !locked {
+		return false
+	}
+	return true
+}
+
 func (r *redisLeader) Resign() error {
 	return nil
 }
@@ -96,10 +112,55 @@ func (r *redisSync) Options() sync.Options {
 }
 
 func (r *redisSync) Lock(id string, opts ...sync.LockOption) error {
+	var options sync.LockOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	var ttl = time.Second * 3
+	if options.TTL != 0 {
+		ttl = options.TTL
+	}
+
+	if r.options.Prefix != "" {
+		id = r.options.Prefix + id
+	}
+
+	switch r.options.Blocked {
+	case false:
+		if r.lock(id, ttl) {
+			return nil
+		}
+		return fmt.Errorf("lock %[1]s failed: %[1]s's locking", id)
+	case true:
+		for {
+			select {
+			case <-time.Tick(ttl):
+				return fmt.Errorf("lock %s failed: timeout", id)
+			default:
+				if r.lock(id, ttl) {
+					return nil
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
 func (r *redisSync) Unlock(id string) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	if r.options.Prefix != "" {
+		id = r.options.Prefix + id
+	}
+
+	affected, err := r.client.Del(id).Result()
+	if err != nil || affected == 0 {
+		log.Fatal(fmt.Sprintf(`unlock %[1]s failed: %[1]s's unlocked`, id))
+		return nil
+	}
 	return nil
 }
 
