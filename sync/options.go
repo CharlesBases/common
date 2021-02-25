@@ -9,8 +9,10 @@ type Options struct {
 	Prefix    string
 	Auth      bool
 	Password  string
+
 	// Blocked 阻塞 | 非阻塞
 	Blocked bool
+	TTL     time.Duration
 }
 
 type Option func(o *Options)
@@ -19,6 +21,13 @@ type Option func(o *Options)
 func WithAddresses(addresses ...string) Option {
 	return func(o *Options) {
 		o.Addresses = addresses
+	}
+}
+
+// WithTTL set the timeout
+func WithTTL(d time.Duration) Option {
+	return func(o *Options) {
+		o.TTL = d
 	}
 }
 

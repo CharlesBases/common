@@ -118,6 +118,9 @@ func (r *redisSync) Lock(id string, opts ...sync.LockOption) error {
 	}
 
 	var ttl = time.Second * 3
+	if r.options.TTL != 0 {
+		ttl = r.options.TTL
+	}
 	if options.TTL != 0 {
 		ttl = options.TTL
 	}
