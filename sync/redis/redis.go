@@ -3,7 +3,6 @@ package redis
 import (
 	"fmt"
 	"log"
-	gosync "sync"
 	"time"
 
 	"github.com/go-redis/redis/v7"
@@ -35,19 +34,6 @@ func NewStore(opts ...sync.Option) sync.Sync {
 type redisSync struct {
 	options sync.Options
 	client  *redis.Client
-
-	mtx   gosync.RWMutex
-	locks map[string]*redisLock
-}
-
-// redisLock redis lock
-type redisLock struct {
-	id  string
-	ttl time.Duration
-}
-
-// redisLeader redis leader
-type redisLeader struct {
 }
 
 func (r *redisSync) configure() error {
@@ -78,26 +64,11 @@ func (r *redisSync) configure() error {
 
 // lock .
 func (r *redisSync) lock(id string, ttl time.Duration) bool {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
 	locked, err := r.client.SetNX(id, time.Now().Format(defaultFormat), ttl).Result()
 	if err != nil || !locked {
 		return false
 	}
 	return true
-}
-
-func (r *redisLeader) Resign() error {
-	return nil
-}
-
-func (r *redisLeader) Status() chan bool {
-	return nil
-}
-
-func (r *redisSync) Leader(id string, opts ...sync.LeaderOption) (sync.Leader, error) {
-	return nil, nil
 }
 
 func (r *redisSync) Init(opts ...sync.Option) error {
@@ -117,10 +88,12 @@ func (r *redisSync) Lock(id string, opts ...sync.LockOption) error {
 		o(&options)
 	}
 
-	var ttl = time.Second * 3
-	if r.options.TTL != 0 {
-		ttl = r.options.TTL
+	var timeout = time.Second * 3
+	if r.options.Timeout != 0 {
+		timeout = r.options.Timeout
 	}
+
+	var ttl = timeout
 	if options.TTL != 0 {
 		ttl = options.TTL
 	}
@@ -138,8 +111,8 @@ func (r *redisSync) Lock(id string, opts ...sync.LockOption) error {
 	case true:
 		for {
 			select {
-			case <-time.Tick(ttl):
-				return fmt.Errorf("lock %s failed: timeout", id)
+			case <-time.Tick(timeout):
+				return sync.ErrLockTimeout
 			default:
 				if r.lock(id, ttl) {
 					return nil
@@ -152,18 +125,18 @@ func (r *redisSync) Lock(id string, opts ...sync.LockOption) error {
 }
 
 func (r *redisSync) Unlock(id string) error {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
 	if r.options.Prefix != "" {
 		id = r.options.Prefix + id
 	}
 
-	affected, err := r.client.Del(id).Result()
-	if err != nil || affected == 0 {
-		log.Fatal(fmt.Sprintf(`unlock %[1]s failed: %[1]s's unlocked`, id))
-		return nil
-	}
+	/*
+	   affected, err := r.client.Del(id).Result()
+	   	if err != nil || affected == 0 {
+	   		log.Fatal(fmt.Sprintf(`unlock %[1]s failed: %[1]s's unlocked`, id))
+	   		return nil
+	   	}
+	*/
+	r.client.Del(id)
 	return nil
 }
 
