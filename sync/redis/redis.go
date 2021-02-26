@@ -23,7 +23,7 @@ func NewStore(opts ...sync.Option) sync.Sync {
 	s := new(redisSync)
 	s.options = options
 
-	if err := s.configure(); err != nil {
+	if err := s.connection(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -36,7 +36,8 @@ type redisSync struct {
 	client  *redis.Client
 }
 
-func (r *redisSync) configure() error {
+// connection connection redis
+func (r *redisSync) connection() error {
 	var redisOptions *redis.Options
 	addrs := r.options.Addresses
 
@@ -71,6 +72,7 @@ func (r *redisSync) lock(id string, ttl time.Duration) bool {
 	return true
 }
 
+// Init init option
 func (r *redisSync) Init(opts ...sync.Option) error {
 	for _, o := range opts {
 		o(&r.options)
@@ -78,10 +80,12 @@ func (r *redisSync) Init(opts ...sync.Option) error {
 	return nil
 }
 
+// Options return a redis Options
 func (r *redisSync) Options() sync.Options {
 	return r.options
 }
 
+// Lock lock id with lockoption
 func (r *redisSync) Lock(id string, opts ...sync.LockOption) error {
 	var options sync.LockOptions
 	for _, o := range opts {
@@ -124,6 +128,7 @@ func (r *redisSync) Lock(id string, opts ...sync.LockOption) error {
 	return nil
 }
 
+// Unlock unlock id
 func (r *redisSync) Unlock(id string) error {
 	if r.options.Prefix != "" {
 		id = r.options.Prefix + id
@@ -140,6 +145,7 @@ func (r *redisSync) Unlock(id string) error {
 	return nil
 }
 
+// String
 func (r *redisSync) String() string {
 	return "redis"
 }
