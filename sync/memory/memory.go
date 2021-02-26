@@ -34,14 +34,6 @@ type memoryLock struct {
 	expiresAt time.Time
 }
 
-// load load from memory
-func (m *memorySync) load(id string) (*memoryLock, bool) {
-	m.mtx.Lock()
-	lk, isExist := m.locks[id]
-	m.mtx.Unlock()
-	return lk, isExist
-}
-
 // Init init options
 func (m *memorySync) Init(opts ...sync.Option) error {
 	for _, o := range opts {
@@ -55,7 +47,7 @@ func (m *memorySync) Options() sync.Options {
 	return m.options
 }
 
-// Lock .
+// Lock lock id from memory
 func (m *memorySync) Lock(id string, opts ...sync.LockOption) error {
 	var options sync.LockOptions
 	for _, o := range opts {
@@ -108,7 +100,7 @@ lockloop:
 	}
 }
 
-// Unlock .
+// Unlock unlock id from memory
 func (m *memorySync) Unlock(id string) error {
 	m.mtx.Lock()
 
