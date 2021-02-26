@@ -7,12 +7,15 @@ import (
 type Options struct {
 	Addresses []string
 	Prefix    string
-	Auth      bool
-	Password  string
+
+	// Auth authentication
+	Auth     bool
+	Password string
 
 	// Blocked 阻塞 | 非阻塞
 	Blocked bool
-	TTL     time.Duration
+	// Timeout default 3 second
+	Timeout time.Duration
 }
 
 type Option func(o *Options)
@@ -24,10 +27,10 @@ func WithAddresses(addresses ...string) Option {
 	}
 }
 
-// WithTTL set the timeout
-func WithTTL(d time.Duration) Option {
+// WithPrefixPrefix sets a prefix to any lock ids used
+func WithPrefix(p string) Option {
 	return func(o *Options) {
-		o.TTL = d
+		o.Prefix = p
 	}
 }
 
@@ -46,42 +49,22 @@ func WithBlocked() Option {
 	}
 }
 
-// WithPrefixPrefix sets a prefix to any lock ids used
-func WithPrefix(p string) Option {
+// WithTimeout set the timeout
+func WithTimeout(d time.Duration) Option {
 	return func(o *Options) {
-		o.Prefix = p
+		o.Timeout = d
 	}
 }
 
 type LockOptions struct {
-	TTL  time.Duration
-	Wait time.Duration
+	TTL time.Duration
 }
 
 type LockOption func(o *LockOptions)
 
 // WithLockTTL sets the lock ttl
-func WithLockTTL(t time.Duration) LockOption {
+func WithLockTTL(d time.Duration) LockOption {
 	return func(o *LockOptions) {
-		o.TTL = t
+		o.TTL = d
 	}
 }
-
-// WithLockWait sets the wait time
-func WithLockWait(t time.Duration) LockOption {
-	return func(o *LockOptions) {
-		o.Wait = t
-	}
-}
-
-// Leader provides leadership election
-type Leader interface {
-	// resign leadership
-	Resign() error
-	// status returns when leadership is lost
-	Status() chan bool
-}
-
-type LeaderOptions struct{}
-
-type LeaderOption func(o *LeaderOptions)

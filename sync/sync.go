@@ -16,8 +16,6 @@ type Sync interface {
 	Init(...Option) error
 	// Return the options
 	Options() Options
-	// Elect a leader
-	Leader(id string, opts ...LeaderOption) (Leader, error)
 	// Lock acquires a lock
 	Lock(id string, opts ...LockOption) error
 	// Unlock releases a lock
