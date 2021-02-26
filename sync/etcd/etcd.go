@@ -14,6 +14,7 @@ import (
 	"github.com/CharlesBases/common/sync"
 )
 
+// NewSync return a etcd sync
 func NewSync(opts ...sync.Option) sync.Sync {
 	var options sync.Options
 	for _, o := range opts {
@@ -62,61 +63,7 @@ type etcdLock struct {
 	m *cc.Mutex
 }
 
-type etcdLeader struct {
-	opts sync.LeaderOptions
-	s    *cc.Session
-	e    *cc.Election
-	id   string
-}
-
-func (e *etcdSync) Leader(id string, opts ...sync.LeaderOption) (sync.Leader, error) {
-	var options sync.LeaderOptions
-	for _, o := range opts {
-		o(&options)
-	}
-
-	// make path
-	path := path.Join(e.path, strings.Replace(e.options.Prefix+id, "/", "-", -1))
-
-	s, err := cc.NewSession(e.client)
-	if err != nil {
-		return nil, err
-	}
-
-	l := cc.NewElection(s, path)
-
-	if err := l.Campaign(context.TODO(), id); err != nil {
-		return nil, err
-	}
-
-	return &etcdLeader{
-		opts: options,
-		e:    l,
-		id:   id,
-	}, nil
-}
-
-func (e *etcdLeader) Status() chan bool {
-	ch := make(chan bool, 1)
-	ech := e.e.Observe(context.Background())
-
-	go func() {
-		for r := range ech {
-			if string(r.Kvs[0].Value) != e.id {
-				ch <- true
-				close(ch)
-				return
-			}
-		}
-	}()
-
-	return ch
-}
-
-func (e *etcdLeader) Resign() error {
-	return e.e.Resign(context.Background())
-}
-
+// Init init option
 func (e *etcdSync) Init(opts ...sync.Option) error {
 	for _, o := range opts {
 		o(&e.options)
@@ -124,10 +71,12 @@ func (e *etcdSync) Init(opts ...sync.Option) error {
 	return nil
 }
 
+// Options return options
 func (e *etcdSync) Options() sync.Options {
 	return e.options
 }
 
+// Lock lock id
 func (e *etcdSync) Lock(id string, opts ...sync.LockOption) error {
 	var options sync.LockOptions
 	for _, o := range opts {
@@ -162,6 +111,7 @@ func (e *etcdSync) Lock(id string, opts ...sync.LockOption) error {
 	return nil
 }
 
+// Unlock unlock id
 func (e *etcdSync) Unlock(id string) error {
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
@@ -174,6 +124,7 @@ func (e *etcdSync) Unlock(id string) error {
 	return err
 }
 
+// String .
 func (e *etcdSync) String() string {
 	return "etcd"
 }
