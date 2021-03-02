@@ -1,11 +1,17 @@
 package algo
 
 import (
-	"fmt"
 	"testing"
+
+	"github.com/CharlesBases/common/log"
 )
 
-func TestGetTraceID(t *testing.T) {
-	tarceID := GetTraceID()
-	fmt.Println(tarceID)
+func TestNextID(t *testing.T) {
+	defer log.Flush()
+
+	tarceID := NextID()
+
+	log.Debug("十六进制:", DecHex(tarceID))
+	log.Debug("十进制:", tarceID)
+	log.Debug("二进制:", DecBin(tarceID))
 }

@@ -3,7 +3,10 @@ package algo
 import (
 	"fmt"
 	"strings"
-	"time"
+
+	"github.com/sony/sonyflake"
+
+	"github.com/CharlesBases/common/log"
 )
 
 /*
@@ -17,59 +20,27 @@ import (
 	4: 序号
 */
 var (
-	sequence      int64
-	lasttimestamp int64
+	sf *sonyflake.Sonyflake
 )
 
 func init() {
-	lasttimestamp = timestamp()
+	var st sonyflake.Settings
+	// st.StartTime = time.Now()
+
+	sf = sonyflake.NewSonyflake(st)
+	if sf == nil {
+		log.Fatal("sonyflake init failed")
+	}
 }
 
-func GetTraceID(machineid ...int64) string {
-	machineID := func() int64 {
-		if len(machineid) != 0 {
-			// 机器 ID, 最多可部署 1024 台机器. [0, 1024]
-			if machineid[0] > -1 && machineid[0] < 1024 {
-				return machineid[0]
-			}
-		}
-		return 0
-	}()
-
-	currtimestamp := timestamp()
-
-	if currtimestamp == lasttimestamp {
-		sequence++
-		// 每毫秒最多产生 4096 个不同的 TraceID. [0, 4096]
-		if sequence > 4095 {
-			time.Sleep(time.Millisecond)
-
-			currtimestamp = timestamp()
-			lasttimestamp = currtimestamp
-			sequence = 0
-		}
-	}
-
-	if currtimestamp > lasttimestamp {
-		sequence = 0
-		lasttimestamp = currtimestamp
-	}
-
-	if currtimestamp < lasttimestamp {
-		lasttimestamp = currtimestamp
-		return ""
-	}
-
-	tarceID := currtimestamp << 22
-	return DecHex(tarceID | machineID | sequence)
+// NextID 返回十进制 id
+func NextID() uint64 {
+	id, _ := sf.NextID()
+	return id
 }
 
-func timestamp() int64 {
-	return time.Now().UnixNano() / 1e6
-}
-
-// 十进制转换成二进制
-func DecBin(dec int64) string {
+// DecBin 十进制转换成二进制
+func DecBin(dec uint64) string {
 	biner := strings.Builder{}
 	if dec != 0 {
 		biner.WriteString(fmt.Sprintf("%s%d", DecBin(dec/2), dec%2))
@@ -78,7 +49,7 @@ func DecBin(dec int64) string {
 }
 
 // 十进制转换成十六进制 Hexadecimal
-var hexadecimal = map[int64]string{
+var hexadecimal = map[uint64]string{
 	0:  "0",
 	1:  "1",
 	2:  "2",
@@ -97,7 +68,8 @@ var hexadecimal = map[int64]string{
 	15: "f",
 }
 
-func DecHex(dec int64) string {
+// DecHex 十进制转十六进制
+func DecHex(dec uint64) string {
 	hexer := strings.Builder{}
 	if dec != 0 {
 		hexer.WriteString(fmt.Sprintf("%s%s", DecHex(dec/16), hexadecimal[dec%16]))
