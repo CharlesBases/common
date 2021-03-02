@@ -13,11 +13,14 @@ import (
 )
 
 const (
+	// SecretKey token secret key
 	SecretKey = "shdkkj&(hkdksaYKBKDJah890uiojoiu0KNKSAdhka892hkj!@kndsajhd"
-	Duration  = 4 * time.Hour
+	// Duration ttl for token
+	Duration = 4 * time.Hour
 )
 
 type (
+	// User user info
 	User struct {
 		UserID    uint64 `json:"user_id"`
 		Timestamp int64  `json:"timestamp"`
@@ -29,6 +32,7 @@ type (
 	}
 )
 
+// GetUser get user from request
 func GetUser(r *http.Request) (userId int, err error) {
 	value := r.FormValue("user_id")
 	userId, err = strconv.Atoi(fmt.Sprintf(`%v`, value))
@@ -38,7 +42,7 @@ func GetUser(r *http.Request) (userId int, err error) {
 	return userId, nil
 }
 
-// generate token
+// GenToken generate token
 func GenToken(user *User) (string, error) {
 	return jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
@@ -50,7 +54,7 @@ func GenToken(user *User) (string, error) {
 	).SignedString([]byte(SecretKey))
 }
 
-// parse token
+// ParToken parse token
 func ParToken(r *http.Request) (*User, error) {
 	token, err := request.ParseFromRequest(
 		r,
@@ -70,21 +74,22 @@ func ParToken(r *http.Request) (*User, error) {
 	return nil, errors.New("unauthorized access to this resource")
 }
 
-/*
- storage token in redis
-*/
+// GenRedisKey generate token key for redis
 func (user *User) GenRedisKey(prefix string) string {
 	return fmt.Sprintf("%s%d_%d", prefix, user.UserID, user.Timestamp)
 }
 
+// SetToken save token to redis
 func SetToken(r *redis.Client, redisKey string, value string) error {
 	return r.Do("SET", redisKey, value).Err()
 }
 
+// GetToken get token from redis
 func GetToken(r *redis.Client, redisKey string) (tokenStr string) {
 	return r.Do("GET", redisKey).String()
 }
 
+// VerifyToken verify token
 func VerifyToken(tokenString string) bool {
 	return true
 }
