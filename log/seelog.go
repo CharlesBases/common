@@ -93,6 +93,14 @@ func Fatalf(format string, params ...interface{}) {
 	seelog.Criticalf(fmt.Sprintf("%s\n%s", format, string(debug.Stack())), params...)
 }
 
+func Critical(vs ...interface{}) {
+	seelog.Critical(append(vs, "\n", string(debug.Stack()))...)
+}
+
+func Criticalf(format string, params ...interface{}) {
+	seelog.Criticalf(fmt.Sprintf("%s\n%s", format, string(debug.Stack())), params...)
+}
+
 func Flush() {
 	seelog.Flush()
 }
