@@ -21,6 +21,7 @@ type (
 	interceptConfig struct {
 		Includes []string // 优先级：高
 		Excludes []string // 优先级：低
+		Prefix   string   // 前缀
 		Fast     bool     // ture:direct，false:regexp
 	}
 )
@@ -40,8 +41,8 @@ func (config *jwtConfig) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 			return
 		}
 		if config.VerifyToken != nil {
-			if !config.VerifyToken(token) {
-				log.Warn("token logout")
+			if !config.VerifyToken(strings.TrimPrefix(token, config.Prefix)) {
+				log.Warn("token invalid")
 				tokenError(rw)
 				return
 			}
@@ -66,7 +67,7 @@ func (config *jwtConfig) intercept(r *http.Request) bool {
 			if strings.HasPrefix(requestURI, uri) {
 				return true
 			}
-		case false:
+		default:
 			if regexp.MustCompile(uri).MatchString(requestURI) {
 				return true
 			}
@@ -80,7 +81,7 @@ func (config *jwtConfig) intercept(r *http.Request) bool {
 				log.Warn("don't interception:", requestURI)
 				return false
 			}
-		case false:
+		default:
 			if regexp.MustCompile(uri).MatchString(requestURI) {
 				log.Warn("don't interception:", requestURI)
 				return false
@@ -94,8 +95,8 @@ func (config *jwtConfig) intercept(r *http.Request) bool {
 func tokenError(rw http.ResponseWriter) {
 	rw.WriteHeader(http.StatusUnauthorized)
 	data, _ := json.Marshal(map[string]interface{}{
-		"errNo":  401,
-		"errMsg": "请求错误",
+		"code":    http.StatusUnauthorized,
+		"message": http.StatusText(http.StatusUnauthorized),
 	})
 	rw.Write(data)
 }

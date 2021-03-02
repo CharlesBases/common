@@ -8,7 +8,7 @@ import (
 
 	"github.com/urfave/negroni"
 
-	"github.com/CharlesBases/common/http/http_context"
+	"github.com/CharlesBases/common/log"
 )
 
 var (
@@ -25,9 +25,7 @@ func Negroni() *negroniLogger {
 
 func (nl *negroniLogger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	start := time.Now()
-	httpContext := http_context.NewContext()
-	defer httpContext.Flush()
-	next(rw, r.WithContext(httpContext))
+	next(rw, r)
 	writer := rw.(negroni.ResponseWriter)
 	logger := negroni.LoggerEntry{
 		StartTime: start.Format(defaultDateFormat),
@@ -40,5 +38,5 @@ func (nl *negroniLogger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 	}
 	buff := new(bytes.Buffer)
 	defaulttemplate.Execute(buff, logger)
-	httpContext.Info(buff.String())
+	log.Info(buff.String())
 }
