@@ -34,7 +34,7 @@ func (config *jwtConfig) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 	if config.intercept(r) {
 		token := r.Header.Get("Authorization")
 
-		user, err := auth.ParToken(r)
+		user, err := auth.ParTokenFromRequest(r)
 		if err != nil {
 			log.Error(err)
 			tokenError(rw)
