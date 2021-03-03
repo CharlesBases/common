@@ -12,7 +12,7 @@ const defaultSeelogConfig = "./config/seelog.xml"
 func init() {
 	logger, err := seelog.LoggerFromConfigAsFile(defaultSeelogConfig)
 	if err != nil {
-		seelog.Warn("seelog config error: ", err, " using defualt seelog config.")
+		seelog.Warnf("load seelog config error: %v, using defualt seelog config.", err)
 		logger, _ = seelog.LoggerFromConfigAsString(`
 			<?xml version="1.0" encoding="utf-8" ?>
 			<seelog levels="debug,info,warn,error,critical">
