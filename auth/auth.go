@@ -34,7 +34,7 @@ type Auth interface {
 	// GenToken generate token for account
 	GenToken(id string, opts ...GenOption) (string, error)
 	// ParToken parse the token
-	ParToken(token string, opts ...ParOption) (*Account, error)
+	ParToken(tokenString string, opts ...ParOption) (*Account, error)
 	// ParTokenFromRequest parse token from request
 	ParTokenFromRequest(r *http.Request, opts ...ParOption) (*Account, error)
 }
@@ -72,6 +72,21 @@ func InitAuth(opts ...Option) error {
 
 	auth = o
 	return nil
+}
+
+// GenToken .
+func GenToken(id string, opts ...GenOption) (string, error) {
+	return auth.GenToken(id, opts...)
+}
+
+// ParToken .
+func ParToken(tokenString string, opts ...ParOption) (*Account, error) {
+	return auth.ParToken(tokenString, opts...)
+}
+
+// ParTokenFromRequest .
+func ParTokenFromRequest(r *http.Request, opts ...ParOption) (*Account, error) {
+	return auth.ParTokenFromRequest(r, opts...)
 }
 
 // Init .
