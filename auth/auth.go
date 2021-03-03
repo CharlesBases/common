@@ -1,95 +1,172 @@
 package auth
 
 import (
+	"encoding/base64"
 	"errors"
-	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
-	"github.com/go-redis/redis/v7"
 )
 
-const (
-	// SecretKey token secret key
-	SecretKey = "shdkkj&(hkdksaYKBKDJah890uiojoiu0KNKSAdhka892hkj!@kndsajhd"
-	// Duration ttl for token
-	Duration = 4 * time.Hour
+// defaultFormat default time format
+const defaultFormat = "2006-01-02 15:04:05"
+
+// errors for auth
+var (
+	// errInvalidKey is returned when the service provided an invalid private key
+	errInvalidKey = errors.New("an invalid private key was provided")
+	// errInvalidToken is returned when the token provided is not valid
+	errInvalidToken = errors.New("an invalid token was provided")
+	// errUnauthorized token not found
+	errUnauthorized = errors.New("account unauthorized")
 )
 
-type (
-	// User user info
-	User struct {
-		UserID    uint64 `json:"user_id"`
-		Timestamp int64  `json:"timestamp"`
-	}
+var auth Auth
 
-	jwtClaims struct {
-		User User
-		jwt.StandardClaims
-	}
-)
-
-// GetUser get user from request
-func GetUser(r *http.Request) (userId int, err error) {
-	value := r.FormValue("user_id")
-	userId, err = strconv.Atoi(fmt.Sprintf(`%v`, value))
-	if err != nil {
-		return -1, errors.New("userId has no value in http request context")
-	}
-	return userId, nil
+// Auth .
+type Auth interface {
+	// Init init options
+	Init(...Option) error
+	// Options allows you to view the current options.
+	Options() Options
+	// GenToken generate token for account
+	GenToken(id string, opts ...GenOption) (string, error)
+	// ParToken parse the token
+	ParToken(token string, opts ...ParOption) (*Account, error)
+	// ParTokenFromRequest parse token from request
+	ParTokenFromRequest(r *http.Request, opts ...ParOption) (*Account, error)
 }
 
-// GenToken generate token
-func GenToken(user *User) (string, error) {
-	return jwt.NewWithClaims(
-		jwt.SigningMethodHS256,
-		jwt.MapClaims(map[string]interface{}{
-			// "iat":  time.Now().Unix(),
-			// "exp":  time.Now().Add(Duration).Unix(),
-			"user": user,
-		}),
-	).SignedString([]byte(SecretKey))
+// Account .
+type Account struct {
+	UserID   string                 `json:"user_id,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+
+	Created string `json:"created"`
+	Expires string `json:"expires"`
+
+	jwt.StandardClaims `json:"-"`
 }
 
-// ParToken parse token
-func ParToken(r *http.Request) (*User, error) {
-	token, err := request.ParseFromRequest(
-		r,
-		request.AuthorizationHeaderExtractor,
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(SecretKey), nil
-		},
-	)
+// opt .
+type opt struct {
+	options Options
+}
+
+// InitAuth .
+func InitAuth(opts ...Option) error {
+	var options Options
+	for _, o := range opts {
+		o(&options)
+	}
+
+	var o = new(opt)
+	o.options = options
+
+	// verify options
+	if o.options.PrivateKey == "" {
+		return errInvalidKey
+	}
+
+	auth = o
+	return nil
+}
+
+// Init .
+func (opt *opt) Init(opts ...Option) error {
+	for _, o := range opts {
+		o(&opt.options)
+	}
+	return nil
+}
+
+// Options .
+func (opt *opt) Options() Options {
+	return opt.options
+}
+
+// GenToken .
+func (opt *opt) GenToken(id string, opts ...GenOption) (string, error) {
+	var options GenOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	var acc = new(Account)
+	acc.UserID = id
+	acc.Created = time.Now().Format(defaultFormat)
+
+	// set expiry
+	var now = time.Now()
+	if !options.Expiry.IsZero() {
+		acc.Expires = options.Expiry.Format(defaultFormat)
+		acc.StandardClaims.ExpiresAt = options.Expiry.Unix()
+	} else if options.TTL != 0 {
+		acc.Expires = now.Add(options.TTL).Format(defaultFormat)
+		acc.StandardClaims.ExpiresAt = now.Add(options.TTL).Unix()
+	} else if opt.options.TTL != 0 {
+		acc.Expires = now.Add(opt.options.TTL).Format(defaultFormat)
+		acc.StandardClaims.ExpiresAt = now.Add(opt.options.TTL).Unix()
+	}
+
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, acc).SignedString(decode(opt.options.PrivateKey))
+}
+
+// ParToken .
+func (opt *opt) ParToken(tokenString string, opts ...ParOption) (*Account, error) {
+	if tokenString != "" {
+		var options ParOptions
+		for _, o := range opts {
+			o(&options)
+		}
+
+		token, err := jwt.ParseWithClaims(tokenString, new(Account), func(token *jwt.Token) (interface{}, error) {
+			return decode(opt.options.PrivateKey), nil
+		})
+		if err == nil {
+			switch token.Valid {
+			case true:
+				if account, ok := token.Claims.(*Account); ok {
+					return account, err
+				}
+				fallthrough
+			default:
+				return nil, errInvalidToken
+			}
+		}
+		return nil, errInvalidToken
+	}
+	return nil, errUnauthorized
+}
+
+// ParTokenFromRequest .
+func (opt *opt) ParTokenFromRequest(r *http.Request, opts ...ParOption) (*Account, error) {
+	var options ParOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor, func(token *jwt.Token) (interface{}, error) {
+		return decode(opt.options.PrivateKey), nil
+	})
 	if err == nil {
 		switch token.Valid {
 		case true:
-			return &token.Claims.(*jwtClaims).User, nil
-		case false:
-			return nil, errors.New("token is not valid")
+			if account, ok := token.Claims.(*Account); ok {
+				return account, err
+			}
+			fallthrough
+		default:
+			return nil, errInvalidToken
 		}
 	}
-	return nil, errors.New("unauthorized access to this resource")
+	return nil, errUnauthorized
 }
 
-// GenRedisKey generate token key for redis
-func (user *User) GenRedisKey(prefix string) string {
-	return fmt.Sprintf("%s%d_%d", prefix, user.UserID, user.Timestamp)
-}
-
-// SetToken save token to redis
-func SetToken(r *redis.Client, redisKey string, value string) error {
-	return r.Do("SET", redisKey, value).Err()
-}
-
-// GetToken get token from redis
-func GetToken(r *redis.Client, redisKey string) (tokenStr string) {
-	return r.Do("GET", redisKey).String()
-}
-
-// VerifyToken verify token
-func VerifyToken(tokenString string) bool {
-	return true
+// decode string to base64
+func decode(source string) []byte {
+	data, _ := base64.StdEncoding.DecodeString(source)
+	return data
 }

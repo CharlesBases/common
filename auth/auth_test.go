@@ -1,29 +1,33 @@
 package auth
 
 import (
+	"encoding/json"
 	"fmt"
-	"os"
+	"log"
 	"testing"
 	"time"
 )
 
+const (
+	privateKey = "shdkkj&(hkdksaYKBKDJah890uiojoiu0KNKSAdhka892hkj!@kndsajhd"
+	ttl        = 4 * time.Hour
+)
+
 func TestAuth(t *testing.T) {
-	user := User{
-		UserID:    1,
-		Timestamp: time.Now().UnixNano(),
-	}
+	InitAuth(WithPrivateKey(privateKey), WithTTL(ttl))
 
-	token, err := GenToken(&user)
+	tokenString, err := auth.GenToken("1")
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(0)
+		log.Fatal(err)
 	}
-	fmt.Println("Token： " + token)
+	fmt.Println("token:\n", tokenString)
 
-	value, err := ParToken(SecretKey, token)
+	account, err := auth.ParToken(tokenString)
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(0)
+		log.Fatal(err)
 	}
-	fmt.Println("value:  ", *value)
+	fmt.Println("account:\n", func() string {
+		data, _ := json.MarshalIndent(account, "", "  ")
+		return string(data)
+	}())
 }
