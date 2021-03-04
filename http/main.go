@@ -4,13 +4,22 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 
+	"github.com/CharlesBases/common/auth"
 	"github.com/CharlesBases/common/log"
 
+	"charlesbases/http/handler/rpc"
+	"charlesbases/http/handler/websocket"
 	"charlesbases/http/middleware"
 )
 
+// defaultPrivateKey default private key for the auth
+const defaultPrivateKey = "5aOu5ZOJ5oiR5aSn5Lit5Y2O"
+
 func main() {
 	defer log.Flush()
+
+	// init auth
+	auth.InitAuth(auth.WithPrivateKey(defaultPrivateKey))
 
 	n := negroni.New()
 
@@ -24,20 +33,20 @@ func main() {
 	n.Run(":8080")
 }
 
-// router router
+// router router 。
 func router() *mux.Router {
 	r := mux.NewRouter()
 
 	// 只匹配 GET | POST
 	r.Methods("GET", "POST")
 
-	// websocket
-	websocket := r.PathPrefix("/stream").Subrouter()
-	websocket.Handle("/", nil)
+	// ws
+	websocketRouter := r.PathPrefix("/stream").Subrouter()
+	websocketRouter.Handle("/", websocket.NewHandler())
 
 	// rpc
-	rpc := r.PathPrefix("/api").Subrouter()
-	rpc.Handle("/{service:[a-zA-Z0-9]+}/{endpoint:[a-zA-Z0-9/]+}", nil)
+	rpcRouter := r.PathPrefix("/api").Subrouter()
+	rpcRouter.Handle("/{service:[a-zA-Z0-9]+}/{endpoint:[a-zA-Z0-9/]+}", rpc.NewHandler())
 
 	return r
 }
