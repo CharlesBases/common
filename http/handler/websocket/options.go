@@ -6,7 +6,7 @@ import "time"
 type Options struct {
 	Namespace   string        // 命名空间
 	Buffer      int           // 缓冲区间. default: 32
-	ContentType string        // 内容类型
+	ContentType string        // 内容类型.
 	Auth        bool          // 认证
 	Timeout     time.Duration // 超时
 }

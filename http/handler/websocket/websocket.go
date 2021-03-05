@@ -1,11 +1,14 @@
 package websocket
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
+
+	"charlesbases/http/handler/websocket/pb"
 )
 
 // WebSocket websocket
@@ -14,8 +17,10 @@ type WebSocket interface {
 	Init(opts ...Option) error
 	// Options return options
 	Options() Options
-	// Connection 建立连接
-	Connection(w http.ResponseWriter, r *http.Request) error
+	// Connect 建立连接
+	Connect(w http.ResponseWriter, r *http.Request) error
+	// Disconnect 断开连接
+	Disconnect()
 	// Subscription 订阅
 	Subscription()
 	// Unsubscription 取消订阅
@@ -26,24 +31,6 @@ type WebSocket interface {
 	Write(v interface{}) error
 	// Ping ping of the websocket
 	Ping()
-	// Close 关闭 websocket 连接
-	Close()
-}
-
-// websocketRequest
-type websocketRequest struct {
-	Version string           `json:"jsonrpc"`
-	Method  string           `json:"method"`
-	ID      *json.RawMessage `json:"id"`
-	Params  *json.RawMessage `json:"params"`
-}
-
-// websocketResponse
-type websocketResponse struct {
-	Version string           `json:"jsonrpc"`
-	Method  string           `json:"method"`
-	ID      *json.RawMessage `json:"id"`
-	Data    interface{}      `json:"data"`
 }
 
 // opt websocket options
@@ -60,9 +47,9 @@ func NewHandler(opts ...Option) *opt {
 
 func (opt *opt) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	stream := opt.newConn(r)
-	defer stream.Close()
+	defer stream.Disconnect()
 
-	stream.Connection(w, r)
+	stream.Connect(w, r)
 	return
 }
 
@@ -83,14 +70,14 @@ func (opt *opt) newConn(r *http.Request) *stream {
 	return &stream{
 		id:            uuid.New().String(),
 		metadata:      opt.parseHeaderFromRequest(r),
-		request:       make(chan *websocketRequest, capacity),
-		response:      make(chan *websocketResponse, capacity),
-		broadcast:     make(chan struct{}, capacity),
+		request:       make(chan *pb.WebSocketRequest, capacity),
+		response:      make(chan *pb.WebSocketResponse, capacity),
+		broadcast:     make(chan *pb.WebSocketBroadcast, capacity),
 		subscriptions: make([]string, 0),
 		ctx:           r.Context(),
 		options:       opt.options,
-		ready:         true,
-		close:         make(chan struct{}, 0),
+		active:        true,
+		disconnect:    make(chan struct{}, 0),
 	}
 }
 
@@ -111,4 +98,10 @@ func (opt *opt) writerErrorToResponse(rw http.ResponseWriter, statusCode int) {
 		"message": http.StatusText(statusCode),
 	})
 	rw.Write(data)
+}
+
+// decode string to base64
+func decode(source string) []byte {
+	data, _ := base64.StdEncoding.DecodeString(source)
+	return data
 }
