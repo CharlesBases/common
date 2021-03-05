@@ -6,14 +6,16 @@ package pb;
 
 // Method method of the websocket request
 enum Method {
-	// Unknown unknown
-	Unknown = 0;
-	// Subscription 消息订阅
-	Subscription = 1;
-	// Unsubscription 取消订阅
-	Unsubscription = 2;
-	// Broadcast 广播
-	Broadcast = 3;
+	// unknown
+	unknown = 0;
+	// 消息订阅
+	subscription = 1;
+	// 取消订阅
+	unsubscription = 2;
+	// 广播
+	broadcast = 3;
+	// 断开
+	disconnect = 4;
 }
 
 // WebSocketRequest websocker request
