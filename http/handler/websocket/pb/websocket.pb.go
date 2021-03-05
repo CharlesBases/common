@@ -31,7 +31,7 @@ type Method int32
 const (
 	// unknown
 	Method_unknown Method = 0
-	// 消息订阅
+	// 广播订阅
 	Method_subscription Method = 1
 	// 取消订阅
 	Method_unsubscription Method = 2
