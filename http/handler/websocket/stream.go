@@ -2,11 +2,12 @@ package websocket
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
-	"time"
 
 	"github.com/CharlesBases/common/log"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 
 	"charlesbases/http/handler/websocket/pb"
 )
@@ -33,6 +34,20 @@ type stream struct {
 	options Options
 }
 
+// isCloseError .
+func (stream *stream) isCloseError(err error) int {
+	if e, ok := err.(*websocket.CloseError); ok {
+		return e.Code
+	}
+	return -1
+}
+
+// decode .
+func (stream *stream) decode(source string) []byte {
+	data, _ := base64.StdEncoding.DecodeString(source)
+	return data
+}
+
 // handling websocket 请求处理
 func (stream *stream) handling() {
 	for {
@@ -41,8 +56,10 @@ func (stream *stream) handling() {
 			switch request.Method {
 			// 消息订阅
 			case pb.Method_subscription.String():
+				stream.eventSubscription(request)
 			// 取消订阅
 			case pb.Method_unsubscription.String():
+				stream.eventUnsubscription(request)
 			// 断开连接
 			case pb.Method_disconnect.String():
 				stream.Disconnect()
@@ -50,12 +67,28 @@ func (stream *stream) handling() {
 		case response := <-stream.response:
 			stream.Write(response)
 		case broadcast := <-stream.broadcast:
-			stream.Write(broadcast)
+			stream.eventBroadcast(broadcast)
 		case <-stream.disconnect:
 			stream.Disconnect()
 			return
 		}
 	}
+}
+
+// eventBroadcast 广播
+func (stream *stream) eventBroadcast(broadcast *pb.WebSocketBroadcast) {
+
+}
+
+// eventSubscription 广播订阅
+func (stream *stream) eventSubscription(request *pb.WebSocketRequest) {
+	var topics = make([]string, 0)
+	stream.subscriptions = append(stream.subscriptions, topics...)
+}
+
+// eventUnsubscription 取消订阅
+func (stream *stream) eventUnsubscription(request *pb.WebSocketRequest) {
+
 }
 
 // Init .
@@ -126,9 +159,9 @@ func (stream *stream) Read() error {
 // Write .
 func (stream *stream) Write(v interface{}) error {
 	switch v.(type) {
-	// case proto.Message:
-	// 	data, _ := proto.Marshal(v.(proto.Message))
-	// 	return stream.conn.WriteMessage(websocket.BinaryMessage, data)
+	case proto.Message:
+		data, _ := proto.Marshal(v.(proto.Message))
+		return stream.conn.WriteMessage(websocket.BinaryMessage, data)
 	default:
 		return stream.conn.WriteJSON(v)
 	}
@@ -136,12 +169,6 @@ func (stream *stream) Write(v interface{}) error {
 
 // Ping .
 func (stream *stream) Ping() {
-	stream.Write(&pb.WebSocketResponse{
-		Version: "test",
-		Method:  "ping",
-		Id:      nil,
-		Data:    []byte(time.Now().Format("2006-01-02 15:04:05")),
-	})
 }
 
 // Disconnect .
@@ -160,12 +187,4 @@ func (stream *stream) Disconnect() {
 			stream.conn = nil
 		}
 	}
-}
-
-// isCloseError .
-func (stream *stream) isCloseError(err error) int {
-	if e, ok := err.(*websocket.CloseError); ok {
-		return e.Code
-	}
-	return -1
 }
