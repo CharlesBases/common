@@ -1,6 +1,8 @@
 package rpc
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // rpc .
 type rpc struct{}
@@ -11,4 +13,6 @@ func NewHandler() *rpc {
 }
 
 func (rpc *rpc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("API test"))
+	return
 }
