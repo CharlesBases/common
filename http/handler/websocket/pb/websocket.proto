@@ -20,18 +20,16 @@ enum Method {
 
 // WebSocketRequest websocker request
 message WebSocketRequest {
-	string version = 1;
+	string id = 1;
 	string method = 2;
-	bytes id = 3;
-	bytes params = 4;
+	bytes params = 3;
 }
 
 // WebSocketResponse websocket response
 message WebSocketResponse {
-	string version = 1;
+	string id = 1;
 	string method = 2;
-	bytes id = 3;
-	bytes data = 4;
+	bytes data = 3;
 }
 
 // WebSocketBroadcast websocket broadcast
