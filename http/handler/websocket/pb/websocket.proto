@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = ".;proto";
+option go_package = ".;pb";
 
-package proto;
+package pb;
 
 // Method method of the websocket request
 enum Method {
@@ -18,10 +18,18 @@ enum Method {
 
 // WebSocketRequest websocker request
 message WebSocketRequest {
+	string version = 1;
+	string method = 2;
+	bytes id = 3;
+	bytes params = 4;
 }
 
 // WebSocketResponse websocket response
 message WebSocketResponse {
+	string version = 1;
+	string method = 2;
+	bytes id = 3;
+	bytes data = 4;
 }
 
 // WebSocketBroadcast websocket broadcast
