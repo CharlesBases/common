@@ -27,7 +27,7 @@ func main() {
 	n.Use(middleware.Cors())
 	n.Use(middleware.Recovery())
 	n.Use(middleware.Negroni())
-	n.Use(middleware.JWT())
+	// n.Use(middleware.JWT())
 
 	n.UseHandler(router())
 	n.Run(":8080")
@@ -37,16 +37,12 @@ func main() {
 func router() *mux.Router {
 	r := mux.NewRouter()
 
-	// 只匹配 GET | POST
-	r.Methods("GET", "POST")
-
-	// ws
-	websocketRouter := r.PathPrefix("/stream").Subrouter()
-	websocketRouter.Handle("/", websocket.NewHandler())
+	// websocket
+	r.Handle("/stream", websocket.NewHandler()).Methods("GET")
 
 	// rpc
 	rpcRouter := r.PathPrefix("/api").Subrouter()
-	rpcRouter.Handle("/{service:[a-zA-Z0-9]+}/{endpoint:[a-zA-Z0-9/]+}", rpc.NewHandler())
+	rpcRouter.Handle("{service:[a-zA-Z0-9]+}/{endpoint:[a-zA-Z0-9/]+}", rpc.NewHandler()).Methods("GET")
 
 	return r
 }
