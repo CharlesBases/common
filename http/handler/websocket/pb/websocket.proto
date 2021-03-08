@@ -4,32 +4,42 @@ option go_package = ".;pb";
 
 package pb;
 
+// MessageType The message types are defined in RFC 6455, section 11.8.
+enum MessageType {
+  // UnknownMessage
+  UnknownMessage= 0;
+  // TextMessage
+  TextMessage = 1;
+  // BinaryMessage
+  BinaryMessage = 2;
+}
+
 // Method method of the websocket request
 enum Method {
-	// unknown
-	unknown = 0;
-	// 广播订阅
-	subscription = 1;
-	// 取消订阅
-	unsubscription = 2;
-	// 广播
-	broadcast = 3;
-	// 断开
-	disconnect = 4;
+  // unknown
+  unknown = 0;
+  // 广播订阅
+  subscription = 1;
+  // 取消订阅
+  unsubscription = 2;
+  // 广播
+  broadcast = 3;
+  // 断开
+  disconnect = 4;
 }
 
 // WebSocketRequest websocker request
 message WebSocketRequest {
-	string id = 1;
-	string method = 2;
-	bytes params = 3;
+  string id = 1;
+  string method = 2;
+  bytes params = 3;
 }
 
 // WebSocketResponse websocket response
 message WebSocketResponse {
-	string id = 1;
-	string method = 2;
-	bytes data = 3;
+  string id = 1;
+  string method = 2;
+  bytes data = 3;
 }
 
 // WebSocketBroadcast websocket broadcast

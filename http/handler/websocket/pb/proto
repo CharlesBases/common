@@ -1,9 +1,11 @@
 #!/usr/bin/env zsh
 
+# brew install protobuf protoc-gen-go
+
 set -e
 
 function main() {
-  protoc --proto_path=$GOPATH/src:. --stack_out=. --go_out=. websocket.proto
+  protoc --proto_path=$GOPATH/src:. --go_out=. websocket.proto
 }
 
 main
