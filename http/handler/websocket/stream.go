@@ -2,34 +2,44 @@ package websocket
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/json"
 	"net/http"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/CharlesBases/common/log"
 	"github.com/gorilla/websocket"
-	"google.golang.org/protobuf/proto"
 
 	"charlesbases/http/handler/websocket/pb"
 )
 
-var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+// upgrader websocker upgrader
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:   1024,
+	WriteBufferSize:  1024,
+	HandshakeTimeout: time.Second * 3,
+	CheckOrigin:      func(r *http.Request) bool { return true },
+}
 
 type metadata map[string]string
 
 // stream websockt stream
 type stream struct {
-	id            string        // 连接 id
-	metadata      metadata      // 随路数据
-	subscriptions []string      // 订阅的消息列表
-	active        bool          // 当前 websocket 是否活跃
-	disconnect    chan struct{} // websocket 退出
+	id            string          // 连接 id
+	metadata      metadata        // 随路数据
+	subscriptions map[string]bool // 订阅的消息列表
+	active        bool            // 当前 websocket 是否活跃
+	disconnect    chan struct{}   // websocket 退出
 
-	request   chan *pb.WebSocketRequest   // 请求
-	response  chan *pb.WebSocketResponse  // 响应
-	broadcast chan *pb.WebSocketBroadcast // 广播
+	request   chan *WebSocketRequest   // 请求
+	response  chan *WebSocketResponse  // 响应
+	broadcast chan *WebSocketBroadcast // 广播
 
 	ctx  context.Context
 	conn *websocket.Conn
+
+	lock sync.RWMutex
 
 	options Options
 }
@@ -40,12 +50,6 @@ func (stream *stream) isCloseError(err error) int {
 		return e.Code
 	}
 	return -1
-}
-
-// decode .
-func (stream *stream) decode(source string) []byte {
-	data, _ := base64.StdEncoding.DecodeString(source)
-	return data
 }
 
 // handling websocket 请求处理
@@ -76,19 +80,62 @@ func (stream *stream) handling() {
 }
 
 // eventBroadcast 广播
-func (stream *stream) eventBroadcast(broadcast *pb.WebSocketBroadcast) {
+func (stream *stream) eventBroadcast(broadcast *WebSocketBroadcast) {
+	var isBroadcast bool
 
+	stream.lock.Lock()
+	if _, ok := stream.subscriptions[broadcast.Topic]; ok {
+		isBroadcast = true
+	} else {
+		for topic := range stream.subscriptions {
+			// 订阅的 topic 是否支持前缀匹配
+			if strings.HasSuffix(topic, "*") {
+				if strings.HasPrefix(broadcast.Topic, strings.TrimSuffix(topic, "*")) {
+					isBroadcast = true
+					break
+				}
+			}
+		}
+	}
+	stream.lock.Unlock()
+
+	if isBroadcast {
+		stream.Write(&WebSocketResponse{ID: stream.id, Method: pb.Method_broadcast.String(), Data: broadcast})
+	}
 }
 
 // eventSubscription 广播订阅
-func (stream *stream) eventSubscription(request *pb.WebSocketRequest) {
+func (stream *stream) eventSubscription(request *WebSocketRequest) {
 	var topics = make([]string, 0)
-	stream.subscriptions = append(stream.subscriptions, topics...)
+
+	if err := stream.Unmarshal(*request.Params, &topics); err != nil {
+		log.Error("[WebSocketID: %s] broadcast subscription error: invalid params format", stream.id)
+		stream.Disconnect()
+		return
+	}
+
+	stream.lock.Lock()
+	for _, topic := range topics {
+		stream.subscriptions[topic] = true
+	}
+	stream.lock.Unlock()
 }
 
 // eventUnsubscription 取消订阅
-func (stream *stream) eventUnsubscription(request *pb.WebSocketRequest) {
+func (stream *stream) eventUnsubscription(request *WebSocketRequest) {
+	var topics = make([]string, 0)
 
+	if err := stream.Unmarshal(*request.Params, &topics); err != nil {
+		log.Error("[WebSocketID: %s] broadcast unsubscription error: invalid params format", stream.id)
+		stream.Disconnect()
+		return
+	}
+
+	stream.lock.Lock()
+	for _, topic := range topics {
+		delete(stream.subscriptions, topic)
+	}
+	stream.lock.Unlock()
 }
 
 // Init .
@@ -114,11 +161,13 @@ func (stream *stream) Connect(w http.ResponseWriter, r *http.Request) error {
 
 	stream.conn = conn
 
-	// 监听 websockt 请求
-	go stream.Read()
+	log.Debugf("[WebSocketID: %s] connect", stream.id)
 
 	// ping
 	stream.Ping()
+
+	// 监听 websockt 请求
+	go stream.Read()
 
 	// 处理 websocket 请求
 	stream.handling()
@@ -138,15 +187,20 @@ func (stream *stream) Unsubscription() {
 // Read .
 func (stream *stream) Read() error {
 	for {
-		request := new(pb.WebSocketRequest)
+		request := new(WebSocketRequest)
 		if err := stream.conn.ReadJSON(request); err != nil {
 			switch stream.isCloseError(err) {
 			case websocket.CloseNoStatusReceived:
-				log.Debugf("websocket disconnect [ID: %s]", stream.id)
 			default:
-				log.Error("received request error: ", err)
+				log.Errorf("[WebSocketID: %s] read message error: %v", stream.id, err)
 			}
 
+			stream.Disconnect()
+			break
+		}
+
+		if request.Params == nil {
+			log.Errorf("[WebSocketID: %s] read message error: params must be not nil", stream.id)
 			stream.Disconnect()
 			break
 		}
@@ -157,23 +211,39 @@ func (stream *stream) Read() error {
 }
 
 // Write .
-func (stream *stream) Write(v interface{}) error {
-	switch v.(type) {
-	case proto.Message:
-		data, _ := proto.Marshal(v.(proto.Message))
-		return stream.conn.WriteMessage(websocket.BinaryMessage, data)
-	default:
+func (stream *stream) Write(v *WebSocketResponse) error {
+	if stream.active {
 		return stream.conn.WriteJSON(v)
 	}
+	return nil
+}
+
+// Marshal .
+func (stream *stream) Marshal(v interface{}) ([]byte, error) {
+	// json
+	return json.Marshal(v)
+}
+
+// Unmarshal .
+func (stream *stream) Unmarshal(data []byte, v interface{}) error {
+	// json
+	return json.Unmarshal(data, v)
 }
 
 // Ping .
 func (stream *stream) Ping() {
+	stream.Write(&WebSocketResponse{
+		ID:     stream.id,
+		Method: "ping",
+		Data:   "OK",
+	})
 }
 
 // Disconnect .
 func (stream *stream) Disconnect() {
 	if stream.active {
+		log.Debugf("[WebSocketID: %s] disconnect", stream.id)
+
 		stream.active = false
 		stream.disconnect <- struct{}{}
 

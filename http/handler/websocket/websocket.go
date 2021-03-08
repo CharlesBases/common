@@ -1,14 +1,11 @@
 package websocket
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
-
-	"charlesbases/http/handler/websocket/pb"
 )
 
 // WebSocket websocket
@@ -21,7 +18,7 @@ type WebSocket interface {
 	Connect(w http.ResponseWriter, r *http.Request) error
 	// Disconnect 断开连接
 	Disconnect()
-	// Subscription 订阅
+	// Subscription 订阅. 支持前缀匹配, eg: github.*
 	Subscription()
 	// Unsubscription 取消订阅
 	Unsubscription()
@@ -29,6 +26,10 @@ type WebSocket interface {
 	Read() error
 	// Write write data to the response
 	Write(v interface{}) error
+	// Marshal websocket 序列化
+	Marshal(v interface{}) ([]byte, error)
+	// Unmarshal websocket 反序列化
+	Unmarshal(data []byte, v interface{}) error
 	// Ping ping of the websocket
 	Ping()
 }
@@ -37,6 +38,27 @@ type WebSocket interface {
 type opt struct {
 	options Options
 }
+
+type (
+	// WebSocketRequest request of the websocket
+	WebSocketRequest struct {
+		ID     string           `json:"id,omitempty"`
+		Method string           `json:"method,omitempty"`
+		Params *json.RawMessage `json:"params,omitempty"`
+	}
+
+	// WebSocketResponse response of the websocket
+	WebSocketResponse struct {
+		ID     string      `json:"id,omitempty"`
+		Method string      `json:"method,omitempty"`
+		Data   interface{} `json:"data,omitempty"`
+	}
+
+	// WebSocketBroadcast broadcast of the websocket
+	WebSocketBroadcast struct {
+		Topic string `json:"topic" validate:"required"`
+	}
+)
 
 // NewHandler .
 func NewHandler(opts ...Option) *opt {
@@ -70,10 +92,10 @@ func (opt *opt) newConn(r *http.Request) *stream {
 	return &stream{
 		id:            uuid.New().String(),
 		metadata:      opt.parseHeaderFromRequest(r),
-		request:       make(chan *pb.WebSocketRequest, capacity),
-		response:      make(chan *pb.WebSocketResponse, capacity),
-		broadcast:     make(chan *pb.WebSocketBroadcast, capacity),
-		subscriptions: make([]string, 0),
+		request:       make(chan *WebSocketRequest, capacity),
+		response:      make(chan *WebSocketResponse, capacity),
+		broadcast:     make(chan *WebSocketBroadcast, capacity),
+		subscriptions: make(map[string]bool),
 		ctx:           r.Context(),
 		options:       opt.options,
 		active:        true,
@@ -98,10 +120,4 @@ func (opt *opt) writerErrorToResponse(rw http.ResponseWriter, statusCode int) {
 		"message": http.StatusText(statusCode),
 	})
 	rw.Write(data)
-}
-
-// decode string to base64
-func decode(source string) []byte {
-	data, _ := base64.StdEncoding.DecodeString(source)
-	return data
 }
