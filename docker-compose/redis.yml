@@ -17,3 +17,8 @@ services:
       - /Users/sun/Program/documents/docker/volume/redis/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - default
+
+networks:
+  default:
+    name: bridge-default
+    driver: bridge

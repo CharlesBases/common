@@ -13,3 +13,8 @@ services:
       - 2380:2380
     networks:
       - default
+
+networks:
+  default:
+    name: bridge-default
+    driver: bridge

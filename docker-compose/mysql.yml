@@ -16,3 +16,8 @@ services:
       - /Users/sun/Program/documents/docker/volume/mysql/conf.d:/etc/mysql/conf.d
     networks:
       - default
+
+networks:
+  default:
+    name: bridge-default
+    driver: bridge
