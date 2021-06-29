@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  etcd:
+    container_name: etcd
+    image: quay.io/coreos/etcd:latest
+    restart: always
+    command: etcd --name=etcd --advertise-client-urls=http://0.0.0.0:2379  --listen-client-urls=http://0.0.0.0:2379 --listen-peer-urls=http://0.0.0.0:238  --initial-advertise-peer-urls=http://0.0.0.0:2380
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - 2379:2379
+      - 2380:2380
+    networks:
+      - default

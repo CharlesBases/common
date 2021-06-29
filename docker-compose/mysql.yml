@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  mysql:
+    container_name: mysql
+    image: mysql:latest
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    ports:
+      - 3306:3306
+    volumes:
+      - /Users/sun/Program/documents/docker/volume/mysql/data:/var/lib/mysql
+      - /Users/sun/Program/documents/docker/volume/mysql/conf.d:/etc/mysql/conf.d
+    networks:
+      - default

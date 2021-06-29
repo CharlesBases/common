@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  redis:
+    container_name: redis
+    image: redis:latest
+    restart: always
+    command: redis-server --appendonly yes
+    environment:
+      - TZ=Asia/Shanghai
+      - maxmemory=1073741842
+    ports:
+      - 6379:6379
+    volumes:
+      - /Users/sun/Program/documents/docker/volume/redis/data:/data
+      - /Users/sun/Program/documents/docker/volume/redis/logs:/logs
+      - /Users/sun/Program/documents/docker/volume/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - default
