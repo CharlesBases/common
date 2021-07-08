@@ -2,7 +2,10 @@ package log
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"runtime/debug"
+	"syscall"
 
 	"github.com/cihub/seelog"
 )
@@ -42,7 +45,9 @@ func init() {
 		seelog.Infof("using seelog configed from %s", defaultSeelogConfig)
 	}
 	logger.SetAdditionalStackDepth(1)
-	seelog.ReplaceLogger(logger)
+	seelog.UseLogger(logger)
+
+	flush()
 }
 
 func Trace(vs ...interface{}) {
@@ -101,6 +106,11 @@ func Criticalf(format string, params ...interface{}) {
 	seelog.Criticalf(fmt.Sprintf("%s\n%s", format, string(debug.Stack())), params...)
 }
 
-func Flush() {
-	seelog.Flush()
+func flush() {
+	go func() {
+		s := make(chan os.Signal)
+		signal.Notify(s, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGSTOP, syscall.SIGKILL, syscall.SIGTERM)
+		<-s
+		seelog.Flush()
+	}()
 }
