@@ -12,9 +12,9 @@ services:
     ports:
       - 6379:6379
     volumes:
-      - /Users/sun/Program/documents/docker/volume/redis/data:/data
-      - /Users/sun/Program/documents/docker/volume/redis/logs:/logs
-      - /Users/sun/Program/documents/docker/volume/redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - /opt/redis/data:/data
+      - /opt/redis/logs:/logs
+      - /opt/redis/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
       - default
 
@@ -22,3 +22,4 @@ networks:
   default:
     name: bridge-default
     driver: bridge
+    external: true

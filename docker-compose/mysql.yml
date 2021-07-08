@@ -13,8 +13,8 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - /Users/sun/Program/documents/docker/volume/mysql/data:/var/lib/mysql
-      - /Users/sun/Program/documents/docker/volume/mysql/conf.d:/etc/mysql/conf.d
+      - /opt/mysql/data:/var/lib/mysql
+      - /opt/mysql/conf.d:/etc/mysql/conf.d
     networks:
       - default
 
@@ -22,3 +22,4 @@ networks:
   default:
     name: bridge-default
     driver: bridge
+    external: true

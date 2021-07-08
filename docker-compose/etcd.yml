@@ -18,3 +18,4 @@ networks:
   default:
     name: bridge-default
     driver: bridge
+    external: true
